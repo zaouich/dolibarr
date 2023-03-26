@@ -461,47 +461,46 @@ class Paiement extends CommonObject
 		}
 
 		if (!$error) {
-	
 			$this->amount = $total;
 			$this->total = $total; // deprecated
 			$this->multicurrency_amount = $mtotal;
 			$this->db->commit();
-			//var_dump($thirdparty); 
-			
 			// Get invoice name
 			$invoiceid = $invoice->ref;
-
 			// Get third party email
 			$thirdpartmail = $invoice->thirdparty->email;
-		
 			// Get main company email
 			$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+			// Generate invoice PDF
+			$result = $invoice->fetch($invoice->id); // Reload to get new records
+			$result = $invoice->fetch_thirdparty();
+			$resultPDF = $invoice->generateDocument($invoice->modelpdf, $langs);
+			if ($resultPDF <= 0) {
+				dol_syslog('Error generating invoice PDF: '.$invoice->error, LOG_ERR);
+				exit;
+			}
 		
-			// Send email to third party
+			// Get PDF file path
+			$pdf_file = dirname($conf->facture->dir_output). "/facture".'/' . $invoice->ref ."/". $invoice->ref . ".pdf";
 			require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
-		
 			$subject = 'Payment Confirmation';
 			$message = 'Dear customer, your payment for invoice ' . $invoiceid . ' has been processed successfully.';
-		
-			$mail = new CMailFile($subject, $thirdpartmail, $from, $message);
+			$filename_list = array($pdf_file);
+			$mimefilename_list = array($invoice->ref . '.pdf');
+			$mimetype_list = array('application/pdf');
+			$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
 			$result = $mail->sendfile();
-		
-			if (!$result) {
-				dol_syslog('Error sending email to customer: '.$mail->error, LOG_ERR);
+			var_dump($result);
+			if ($result)
+			{
+				setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 			}
-			
-			
-			
-
-			echo($invoiceid);
+			else
+			{
+				setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+			}
 		
-			
-			
-
-			exit;			
-			
 		}
-		
 		else
 		{
 			$this->db->rollback();
