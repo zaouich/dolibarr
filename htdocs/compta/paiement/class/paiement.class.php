@@ -460,22 +460,53 @@ class Paiement extends CommonObject
 			$error++;
 		}
 
-		if (!$error)
-		{
-		    $this->amount = $total;
-		    $this->total = $total; // deprecated
-		    $this->multicurrency_amount = $mtotal;
+		if (!$error) {
+	
+			$this->amount = $total;
+			$this->total = $total; // deprecated
+			$this->multicurrency_amount = $mtotal;
 			$this->db->commit();
+			//var_dump($thirdparty); 
+			
+			// Get invoice name
+			$invoiceid = $invoice->ref;
 
-}
-			return $this->id;
+			// Get third party email
+			$thirdpartmail = $invoice->thirdparty->email;
+		
+			// Get main company email
+			$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+		
+			// Send email to third party
+			require_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
+		
+			$subject = 'Payment Confirmation';
+			$message = 'Dear customer, your payment for invoice ' . $invoiceid . ' has been processed successfully.';
+		
+			$mail = new CMailFile($subject, $thirdpartmail, $from, $message);
+			$result = $mail->sendfile();
+		
+			if (!$result) {
+				dol_syslog('Error sending email to customer: '.$mail->error, LOG_ERR);
+			}
+			
+			
+			
+
+			echo($invoiceid);
+		
+			
+			
+
+			exit;			
+			
 		}
+		
 		else
 		{
 			$this->db->rollback();
 			return -1;
 		}
-		echo("jozef");
 	}
 
 
@@ -894,6 +925,7 @@ class Paiement extends CommonObject
 	 *
 	 *	  @param	User	$user		User making validation
 	 *    @return   int     			<0 if KO, >0 if OK
+	 *
 	 */
     public function valide(User $user = null)
     {
@@ -911,6 +943,7 @@ class Paiement extends CommonObject
 			dol_syslog(get_class($this).'::valide '.$this->error);
 			return -1;
 		}
+		
     }
 
 	/**
@@ -1336,5 +1369,6 @@ class Paiement extends CommonObject
 		}
 
 		return parent::fetch_thirdparty($force_thirdparty_id);
+	
 	}
 }
