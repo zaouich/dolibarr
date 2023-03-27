@@ -226,6 +226,49 @@ if (empty($reshook))
 		{
 			$result = $object->delete($user, 0, $idwarehouse);
 			if ($result > 0) {
+				$result = $object->fetch($object->id); // Reload to get new records
+				$result = $object->fetch_thirdparty();
+			
+				$message = 'an invoice was deleted !';
+				$sendto = $object->thirdparty->email;
+				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+			
+				$filename_list = array();
+				$mimefilename_list = array();
+				$mimetype_list = array();
+			
+				// Generate PDF
+				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
+				if ($resultPDF <= 0)
+				{
+					setEventMessages($object->error, $object->errors, 'errors');
+				}
+				else
+				{
+					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
+					$file = $fileparams['fullname'];
+			
+					$filename_list[] = $file;
+					$mimefilename_list[] = $object->ref . '.pdf';
+					$mimetype_list[] = 'application/pdf';
+				}
+			
+				// Send email
+				if (!empty($sendto) && !empty($from))
+				{
+					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+					$result = $mailfile->sendfile();
+					if ($result)
+					{
+						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+					}
+					else
+					{
+						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+					}
+				}
 				header('Location: '.DOL_URL_ROOT.'/compta/facture/list.php?restore_lastsearch_values=1');
 				exit();
 			} else {
