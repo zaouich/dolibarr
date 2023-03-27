@@ -1062,6 +1062,50 @@ if ($result > 0)
 			$result = $paiement->fetch(GETPOST('paiement_id'));
 			if ($result > 0) {
 				$result = $paiement->delete(); // If fetch ok and found
+
+				$result = $object->fetch($object->id); // Reload to get new records
+				$result = $object->fetch_thirdparty();
+			
+				$message = 'a payment was deleted !';
+				$sendto = $object->thirdparty->email;
+				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+			
+				$filename_list = array();
+				$mimefilename_list = array();
+				$mimetype_list = array();
+			
+				// Generate PDF
+				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
+				if ($resultPDF <= 0)
+				{
+					setEventMessages($object->error, $object->errors, 'errors');
+				}
+				else
+				{
+					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
+					$file = $fileparams['fullname'];
+			
+					$filename_list[] = $file;
+					$mimefilename_list[] = $object->ref . '.pdf';
+					$mimetype_list[] = 'application/pdf';
+				}
+			
+				// Send email
+				if (!empty($sendto) && !empty($from))
+				{
+					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+					$result = $mailfile->sendfile();
+					if ($result)
+					{
+						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+					}
+					else
+					{
+						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+					}
+				}
 				header("Location: ".$_SERVER['PHP_SELF']."?id=".$id);
 			}
 			if ($result < 0) {
@@ -4038,6 +4082,7 @@ elseif ($id > 0 || !empty($ref))
 		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?facid='.$object->id, $langs->trans('ClassifyPaid'), $langs->trans('ConfirmClassifyPaidBill', $object->ref), 'confirm_paid', '', "yes", 1);
 	}
 	if ($action == 'paid' && $resteapayer > 0) {
+
 		// Code
 		$i = 0;
 		$close[$i]['code'] = 'discount_vat'; // escompte
@@ -4104,11 +4149,12 @@ elseif ($id > 0 || !empty($ref))
 			$formconfirm = $form->formconfirm($_SERVER['PHP_SELF'].'?facid='.$object->id, $langs->trans('CancelBill'), $langs->trans('ConfirmCancelBill', $object->ref), 'confirm_canceled', $formquestion, "yes", 1, 250);
 		}
 	}
-
 	if ($action == 'deletepaiement')
 	{
+		
 		$payment_id = GETPOST('paiement_id');
 		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id.'&paiement_id='.$payment_id, $langs->trans('DeletePayment'), $langs->trans('ConfirmDeletePayment'), 'confirm_delete_paiement', '', 'no', 1);
+		
 	}
 
 	// Confirmation de la suppression d'une ligne produit
