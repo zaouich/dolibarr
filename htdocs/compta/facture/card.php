@@ -197,6 +197,51 @@ if (empty($reshook))
 		if ($object->statut == Facture::STATUS_CLOSED || ($object->statut == Facture::STATUS_ABANDONED && ($object->close_code != 'replaced' || $object->getIdReplacingInvoice() == 0)) || ($object->statut == Facture::STATUS_VALIDATED && $object->paye == 1)) {    // ($object->statut == 1 && $object->paye == 1) should not happened but can be found when data are corrupted
 			$result = $object->set_unpaid($user);
 			if ($result > 0) {
+				
+
+				$result = $object->fetch($object->id); // Reload to get new records
+				$result = $object->fetch_thirdparty();
+			
+				$message = 'your facture '.$object->ref.' is reopen';
+				$sendto = $object->thirdparty->email;
+				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+			
+				$filename_list = array();
+				$mimefilename_list = array();
+				$mimetype_list = array();
+			
+				// Generate PDF
+				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
+				if ($resultPDF <= 0)
+				{
+					setEventMessages($object->error, $object->errors, 'errors');
+				}
+				else
+				{
+					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
+					$file = $fileparams['fullname'];
+			
+					$filename_list[] = $file;
+					$mimefilename_list[] = $object->ref . '.pdf';
+					$mimetype_list[] = 'application/pdf';
+				}
+			
+				// Send email
+				if (!empty($sendto) && !empty($from))
+				{
+					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+					$result = $mailfile->sendfile();
+					if ($result)
+					{
+						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+					}
+					else
+					{
+						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+					}
+				}
 				header('Location: '.$_SERVER["PHP_SELF"].'?facid='.$id);
 				exit();
 			} else {
@@ -919,6 +964,7 @@ if ($result > 0)
 		if ($close_code) {
 			$result = $object->set_canceled($user, $close_code, $close_note);
 			if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
+			
 		} else {
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("Reason")), null, 'errors');
 		}
