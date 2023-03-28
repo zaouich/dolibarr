@@ -50,6 +50,44 @@ require_once DOL_DOCUMENT_ROOT.'/core/lib/invoice.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
+function sendMail($object, $conf, $langs, $mysoc,$message) {
+    $result = $object->fetch($object->id); // Reload to get new records
+    $result = $object->fetch_thirdparty();
+
+    $message = $message;
+    $sendto = $object->thirdparty->email;
+    $from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+    $subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+
+    $filename_list = array();
+    $mimefilename_list = array();
+    $mimetype_list = array();
+
+    // Generate PDF
+    $resultPDF = $object->generateDocument($object->modelpdf, $langs);
+    if ($resultPDF <= 0) {
+        setEventMessages($object->error, $object->errors, 'errors');
+    } else {
+        $fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/') . '[^\-]+');
+        $file = $fileparams['fullname'];
+
+        $filename_list[] = $file;
+        $mimefilename_list[] = $object->ref . '.pdf';
+        $mimetype_list[] = 'application/pdf';
+    }
+
+    // Send email
+    if (!empty($sendto) && !empty($from)) {
+        require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+        $mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+        $result = $mailfile->sendfile();
+        if ($result) {
+            setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+        } else {
+            setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
+        }
+    }
+}
 if (!empty($conf->commande->enabled))
 	require_once DOL_DOCUMENT_ROOT.'/commande/class/commande.class.php';
 if (!empty($conf->projet->enabled)) {
@@ -199,50 +237,7 @@ if (empty($reshook))
 			if ($result > 0) {
 				
 
-				$result = $object->fetch($object->id); // Reload to get new records
-				$result = $object->fetch_thirdparty();
-			
-				$message = 'your facture '.$object->ref.' is reopen';
-				$sendto = $object->thirdparty->email;
-				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-			
-				$filename_list = array();
-				$mimefilename_list = array();
-				$mimetype_list = array();
-			
-				// Generate PDF
-				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
-				if ($resultPDF <= 0)
-				{
-					setEventMessages($object->error, $object->errors, 'errors');
-				}
-				else
-				{
-					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
-					$file = $fileparams['fullname'];
-			
-					$filename_list[] = $file;
-					$mimefilename_list[] = $object->ref . '.pdf';
-					$mimetype_list[] = 'application/pdf';
-				}
-			
-				// Send email
-				if (!empty($sendto) && !empty($from))
-				{
-					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-					$result = $mailfile->sendfile();
-					if ($result)
-					{
-						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-					}
-					else
-					{
-						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
-
-					}
-				}
+				sendMail($object, $conf, $langs, $mysoc , 'invoice reopened !'); 
 				header('Location: '.$_SERVER["PHP_SELF"].'?facid='.$id);
 				exit();
 			} else {
@@ -272,50 +267,7 @@ if (empty($reshook))
 		{
 			$result = $object->delete($user, 0, $idwarehouse);
 			if ($result > 0) {
-				$result = $object->fetch($object->id); // Reload to get new records
-				$result = $object->fetch_thirdparty();
-			
-				$message = 'an invoice was deleted !';
-				$sendto = $object->thirdparty->email;
-				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-			
-				$filename_list = array();
-				$mimefilename_list = array();
-				$mimetype_list = array();
-			
-				// Generate PDF
-				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
-				if ($resultPDF <= 0)
-				{
-					setEventMessages($object->error, $object->errors, 'errors');
-				}
-				else
-				{
-					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
-					$file = $fileparams['fullname'];
-			
-					$filename_list[] = $file;
-					$mimefilename_list[] = $object->ref . '.pdf';
-					$mimetype_list[] = 'application/pdf';
-				}
-			
-				// Send email
-				if (!empty($sendto) && !empty($from))
-				{
-					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-					$result = $mailfile->sendfile();
-					if ($result)
-					{
-						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-					}
-					else
-					{
-						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
-
-					}
-				}
+				sendMail($object, $conf, $langs, $mysoc ,"invoice deleted !");
 				header('Location: '.DOL_URL_ROOT.'/compta/facture/list.php?restore_lastsearch_values=1');
 				exit();
 			} else {
@@ -694,50 +646,7 @@ if (empty($reshook))
     }// Send email with invoice automatically
 if ($result > 0)
 {
-    $result = $object->fetch($object->id); // Reload to get new records
-    $result = $object->fetch_thirdparty();
-
-    $message = '';
-    $sendto = $object->thirdparty->email;
-    $from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-    $subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-
-    $filename_list = array();
-    $mimefilename_list = array();
-    $mimetype_list = array();
-
-    // Generate PDF
-    $resultPDF = $object->generateDocument($object->modelpdf, $langs);
-    if ($resultPDF <= 0)
-    {
-        setEventMessages($object->error, $object->errors, 'errors');
-    }
-    else
-    {
-        $fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
-        $file = $fileparams['fullname'];
-
-        $filename_list[] = $file;
-        $mimefilename_list[] = $object->ref . '.pdf';
-        $mimetype_list[] = 'application/pdf';
-    }
-
-    // Send email
-    if (!empty($sendto) && !empty($from))
-    {
-        require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-        $mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-        $result = $mailfile->sendfile();
-        if ($result)
-        {
-            setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-        }
-        else
-        {
-			setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
-
-        }
-    }
+    sendMail($object, $conf, $langs, $mysoc , "here is your invoice");
 }
 	
 
@@ -948,50 +857,7 @@ if ($result > 0)
 		$result = $object->set_paid($user);
 		if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 		else{
-			$result = $object->fetch($object->id); // Reload to get new records
-				$result = $object->fetch_thirdparty();
-			
-				$message = 'your invoice is paid';
-				$sendto = $object->thirdparty->email;
-				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-			
-				$filename_list = array();
-				$mimefilename_list = array();
-				$mimetype_list = array();
-			
-				// Generate PDF
-				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
-				if ($resultPDF <= 0)
-				{
-					setEventMessages($object->error, $object->errors, 'errors');
-				}
-				else
-				{
-					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
-					$file = $fileparams['fullname'];
-			
-					$filename_list[] = $file;
-					$mimefilename_list[] = $object->ref . '.pdf';
-					$mimetype_list[] = 'application/pdf';
-				}
-			
-				// Send email
-				if (!empty($sendto) && !empty($from))
-				{
-					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-					$result = $mailfile->sendfile();
-					if ($result)
-					{
-						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-					}
-					else
-					{
-						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
-
-					}
-				}
+			sendMail($object, $conf, $langs, $mysoc,"your invoice is paid");
 		}
 	} // Classif "paid partialy"
 	elseif ($action == 'confirm_paid_partially' && $confirm == 'yes' && $usercanissuepayment)
@@ -1014,50 +880,7 @@ if ($result > 0)
 			$result = $object->set_canceled($user, $close_code, $close_note);
 			if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 			else{
-				$result = $object->fetch($object->id); // Reload to get new records
-				$result = $object->fetch_thirdparty();
-			
-				$message = 'your invoice is canceled';
-				$sendto = $object->thirdparty->email;
-				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-			
-				$filename_list = array();
-				$mimefilename_list = array();
-				$mimetype_list = array();
-			
-				// Generate PDF
-				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
-				if ($resultPDF <= 0)
-				{
-					setEventMessages($object->error, $object->errors, 'errors');
-				}
-				else
-				{
-					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
-					$file = $fileparams['fullname'];
-			
-					$filename_list[] = $file;
-					$mimefilename_list[] = $object->ref . '.pdf';
-					$mimetype_list[] = 'application/pdf';
-				}
-			
-				// Send email
-				if (!empty($sendto) && !empty($from))
-				{
-					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-					$result = $mailfile->sendfile();
-					if ($result)
-					{
-						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-					}
-					else
-					{
-						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
-
-					}
-				}
+				sendMail($object, $conf, $langs, $mysoc,"your invoice is cancelled");
 			}
 			
 		} else {
@@ -1246,51 +1069,7 @@ if ($result > 0)
 			$result = $paiement->fetch(GETPOST('paiement_id'));
 			if ($result > 0) {
 				$result = $paiement->delete(); // If fetch ok and found
-
-				$result = $object->fetch($object->id); // Reload to get new records
-				$result = $object->fetch_thirdparty();
-			
-				$message = 'a payment was deleted !';
-				$sendto = $object->thirdparty->email;
-				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-			
-				$filename_list = array();
-				$mimefilename_list = array();
-				$mimetype_list = array();
-			
-				// Generate PDF
-				$resultPDF = $object->generateDocument($object->modelpdf, $langs);
-				if ($resultPDF <= 0)
-				{
-					setEventMessages($object->error, $object->errors, 'errors');
-				}
-				else
-				{
-					$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/').'[^\-]+');
-					$file = $fileparams['fullname'];
-			
-					$filename_list[] = $file;
-					$mimefilename_list[] = $object->ref . '.pdf';
-					$mimetype_list[] = 'application/pdf';
-				}
-			
-				// Send email
-				if (!empty($sendto) && !empty($from))
-				{
-					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-					$result = $mailfile->sendfile();
-					if ($result)
-					{
-						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-					}
-					else
-					{
-						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
-
-					}
-				}
+				sendMail($object, $conf, $langs, $mysoc , "a payment has been deleted");
 				header("Location: ".$_SERVER['PHP_SELF']."?id=".$id);
 			}
 			if ($result < 0) {
