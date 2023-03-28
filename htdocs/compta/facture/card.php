@@ -239,7 +239,8 @@ if (empty($reshook))
 					}
 					else
 					{
-						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
+
 					}
 				}
 				header('Location: '.$_SERVER["PHP_SELF"].'?facid='.$id);
@@ -311,7 +312,8 @@ if (empty($reshook))
 					}
 					else
 					{
-						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
+
 					}
 				}
 				header('Location: '.DOL_URL_ROOT.'/compta/facture/list.php?restore_lastsearch_values=1');
@@ -732,7 +734,8 @@ if ($result > 0)
         }
         else
         {
-            setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+			setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
+
         }
     }
 }
@@ -985,7 +988,8 @@ if ($result > 0)
 					}
 					else
 					{
-						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
+
 					}
 				}
 		}
@@ -1050,7 +1054,8 @@ if ($result > 0)
 					}
 					else
 					{
-						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
+
 					}
 				}
 			}
@@ -1282,7 +1287,8 @@ if ($result > 0)
 					}
 					else
 					{
-						setEventMessages('ErrorFailedToSendMail', $from, $sendto, 0, 1);
+						setEventMessages('ErrorFailedToSendMail, From: '.$from.', To: '.$sendto, null, 'errors', 0, 'direct');
+
 					}
 				}
 				header("Location: ".$_SERVER['PHP_SELF']."?id=".$id);
