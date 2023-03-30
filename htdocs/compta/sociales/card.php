@@ -73,6 +73,8 @@ if ($action == 'confirm_paid' && $user->rights->tax->charges->creer && $confirm 
 }
 
 if ($action == 'reopen' && $user->rights->tax->charges->creer) {
+	echo("76")	;
+	exit;
 	$result = $object->fetch($id);
 	if ($object->paye)
 	{
@@ -446,7 +448,8 @@ if ($id > 0)
 		{
 			$text = $langs->trans('ConfirmPaySocialContribution');
 			print $form->formconfirm($_SERVER["PHP_SELF"]."?id=".$object->id, $langs->trans('PaySocialContribution'), $text, "confirm_paid", '', '', 2);
-		}
+			
+			}
 
 		// Confirmation of the removal of the Social Contribution
 		if ($action == 'delete')

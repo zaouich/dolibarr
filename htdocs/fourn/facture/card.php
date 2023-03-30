@@ -1537,10 +1537,12 @@ if (empty($reshook))
 			}
 		}
 	}
-
+	
 	// Set invoice to validated/unpaid status
 	elseif ($action == 'reopen' && $user->rights->fournisseur->facture->creer)
 	{
+		echo '<script>alert("Welcome to Geeks for Geeks")</script>';
+
 		$result = $object->fetch($id);
 		if ($object->statut == FactureFournisseur::STATUS_CLOSED
 		|| ($object->statut == FactureFournisseur::STATUS_ABANDONED && $object->close_code != 'replaced'))
@@ -1548,6 +1550,7 @@ if (empty($reshook))
 			$result = $object->set_unpaid($user);
 			if ($result > 0)
 			{
+				
 				header('Location: '.$_SERVER["PHP_SELF"].'?id='.$id);
 				exit;
 			}
@@ -2432,6 +2435,8 @@ else
 		}
 
 		// Print form confirm
+		print "okay";
+		exit;
 		print $formconfirm;
 
 

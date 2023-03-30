@@ -82,7 +82,9 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->facture->
 	if ($result > 0)
 	{
         $db->commit();
-
+		
+		echo("test");
+		exit;
         if ($backtopage)
         {
         	header("Location: ".$backtopage);

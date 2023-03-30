@@ -234,6 +234,7 @@ class InterfaceWorkflowManager extends DolibarrTriggers
         // Invoice classify billed order
         if ($action == 'BILL_PAYED')
         {
+			echo("test");
             dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
 
             if (!empty($conf->commande->enabled) && !empty($conf->global->WORKFLOW_INVOICE_CLASSIFY_BILLED_ORDER))

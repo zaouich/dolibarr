@@ -115,6 +115,8 @@ if (GETPOST('cancel', 'alpha'))
 
 if ($action == "reopen")
 {
+	echo '<script>alert("Welcome to Geeks for Geeks")</script>';
+
 	$result = $object->setStatut($object::STATUS_DRAFT, null, '', 'CASHFENCE_REOPEN');
 	if ($result < 0) {
 		dol_print_error($db, $object->error, $object->error);

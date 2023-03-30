@@ -405,6 +405,7 @@ if (empty($reshook))
 	if ($action == 'confirm_reopen' && $confirm == 'yes')
 	{
 		$result = $object->setValid($user);
+		
 		if ($result <= 0)
 		{
 			setEventMessages($object->error, $object->errors, 'errors');
@@ -771,7 +772,10 @@ elseif ($object->id > 0)
 	}
 	// Confirmation reopen
 	if ($action == 'reopen')
+	
 	{
+	echo("777")	;
+	exit;
 		print $form->formconfirm($_SERVER["PHP_SELF"]."?id=".$object->id, $langs->trans("ReOpenAProject"), $langs->trans("ConfirmReOpenAProject"), "confirm_reopen", '', '', 1);
 	}
 	// Confirmation delete

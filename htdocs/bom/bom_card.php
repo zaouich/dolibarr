@@ -413,6 +413,8 @@ if ($object->id > 0 && (empty($action) || ($action != 'edit' && $action != 'crea
 	// Confirmation of reopen
 	if ($action == 'reopen')
 	{
+		echo("416")	;
+	exit;
 		$text = $langs->trans('ConfirmReopenBom', $object->ref);
 		/*if (! empty($conf->notification->enabled))
 		 {

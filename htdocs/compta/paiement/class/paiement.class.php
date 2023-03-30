@@ -439,7 +439,6 @@ class Paiement extends CommonObject
 			$this->total = $total; // deprecated
 			$this->multicurrency_amount = $mtotal;
 			$this->db->commit();
-
 			// Get invoice name
 			$currency = $invoice->multicurrency_code;
 			$invoiceid = $invoice->ref;
@@ -466,16 +465,16 @@ class Paiement extends CommonObject
 			$message = "Dear customer \n your payment for invoice " . $invoiceid . " (payment ID: " . $payment_ref . ") " . "has been processed successfully \n" . "The amount paid is " . $mtotal . " " . $currency . " at " . date("Y-m-d H:i:s") . "\n The total amount paid is " . $total_paid_amount  . ' ' . $currency . " \n original amount is " . $invoice->total_ht . ' ' . $currency . "\nremaining amount is " .  $remaning_amount . " " . $currency . "\n";
 
 			if ($invoice->paye == 1) {
-				$message .= "The invoice is fully paid.";
+				$message .= "The invoice status is :  paid.";
 			} else {
-				$message .= " The invoice is partially paid ";
+				$message .= " The invoice status is : started. ";
 			}
 
 			$filename_list = array($pdf_file);
 			$mimefilename_list = array($invoice->ref . '.pdf');
 			$mimetype_list = array('application/pdf');
-			$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-			$result = $mail->sendfile();
+			//$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+			//$result = $mail->sendfile();
 
 			if ($result) {
 				setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');

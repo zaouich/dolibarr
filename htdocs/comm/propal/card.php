@@ -1920,6 +1920,8 @@ if ($action == 'create')
 	// Confirm reopen
 	elseif ($action == 'reopen') {
 		$formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$object->id, $langs->trans('ReOpen'), $langs->trans('ConfirmReOpenProp', $object->ref), 'confirm_reopen', '', 0, 1);
+		echo("1923")	;
+	exit;
 	}
 
 	// Confirmation delete product/service line
