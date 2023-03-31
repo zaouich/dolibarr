@@ -1,4 +1,27 @@
 <?php
+
+
+
+use Twilio\Rest\Client;
+require_once(__DIR__ . '/../../../includes/twilio/sdk/src/Twilio/autoload.php');
+
+function send_sms($phone_number , $message){
+    $sid = "AC6c449db69d57941571115f72f029ae35";
+    $token = "0536484e1eb729d6c349ad477d67761a";
+    $twilio = new Client($sid, $token);
+	$from = "+15856696175";
+	$sendto = $phone_number;
+    try {
+        $message = $twilio->messages->create($phone_number, [
+            "body" => $message,
+            "from" => "+15856696175"
+        ]);
+		setEventMessages("SMS sent successfully", null, 'mesgs');
+    } catch (Exception $e) {
+        setEventMessages("SMS not sent", null, 'errors');
+    }
+}
+
 function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 
 {
@@ -74,6 +97,7 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
 					$result = $mailfile->sendfile();
+					
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -87,7 +111,6 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
                 
 }
 function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc){
-  
     $result = $object->fetch($object->id); // Reload to get new records
 				$result = $object->fetch_thirdparty();
 				
@@ -113,6 +136,8 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc){
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message);
 					$result = $mailfile->sendfile();
+					send_sms("+212637342771", $message);
+
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -423,7 +448,8 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc){
 				$sendto = $object->thirdparty->email;
 				$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
 				$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-
+                $phone_number = $object->thirdparty->phone;
+                
 				$filename_list = array();
 				$mimefilename_list = array();
 				$mimetype_list = array();
@@ -440,8 +466,12 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc){
 					$mimefilename_list[] = $object->ref . '.pdf';
 					$mimetype_list[] = 'application/pdf';
 				}
-
+                // send email 
+                // get user phone number
+                echo '<pre>';
 				// Send email
+				send_sms("+212637342771",$message);
+
 				if (!empty($sendto) && !empty($from)) {
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
