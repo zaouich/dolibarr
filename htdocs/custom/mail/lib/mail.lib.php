@@ -97,7 +97,7 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
 					$result = $mailfile->sendfile();
-					
+					send_sms("+212637342771", $message);
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -170,6 +170,7 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc){
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message);
 					$result = $mailfile->sendfile();
+					send_sms("+212637342771", $message);
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -251,6 +252,7 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
 					$result = $mailfile->sendfile();
+					send_sms("+212637342771", $message);
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -325,6 +327,7 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
 					$result = $mailfile->sendfile();
+					send_sms("+212637342771", $message);
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -399,6 +402,7 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
 					$result = $mailfile->sendfile();
+					send_sms("+212637342771", $message);
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -466,9 +470,7 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc){
 					$mimefilename_list[] = $object->ref . '.pdf';
 					$mimetype_list[] = 'application/pdf';
 				}
-                // send email 
-                // get user phone number
-                echo '<pre>';
+         
 				// Send email
 				send_sms("+212637342771",$message);
 
