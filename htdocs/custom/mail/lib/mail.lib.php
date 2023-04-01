@@ -4,7 +4,32 @@
 
 use Twilio\Rest\Client;
 require_once(__DIR__ . '/../../../includes/twilio/sdk/src/Twilio/autoload.php');
+function check($conf,$method){
+	$database_name = $conf->db->name;
+	$database_user_name = $conf->db->user;
+	$database_password = $conf->db->pass;
+	$database_host = $conf->db->host;
+	echo($database_name);
+	echo($database_user_name);
+	echo($database_password);
+	echo($database_host);
+	$db = new mysqli($database_host, $database_user_name, $database_password, $database_name);
+	if ($db->connect_error) {
+    die("Connection failed: " . $db->connect_error);
+	}
 
+// Execute the SQL statement and fetch the data
+$sql = "SELECT * FROM llx_auto_send WHERE id = 1";
+$result = $db->query($sql);
+$data = $result->fetch_assoc();
+
+	// check if data[$method] is 1 or 0
+	if($data[$method] == 1){
+		return true;
+	}else{
+		return null;
+	}
+}
 function send_sms($phone_number , $message){
     $sid = "AC6c449db69d57941571115f72f029ae35";
     $token = "0536484e1eb729d6c349ad477d67761a";
@@ -18,13 +43,18 @@ function send_sms($phone_number , $message){
         ]);
 		setEventMessages("SMS sent successfully", null, 'mesgs');
     } catch (Exception $e) {
+		
         setEventMessages("SMS not sent", null, 'errors');
     }
 }
 
 function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
+// get the name of the database
 
 {
+	
+	$okay = check($conf,"payment_delete");
+	
     if($conf->global->MAIN_MODULE_MAIL == 1){
         $result = $object->fetch($object->id); // Reload to get new records
 				$result = $object->fetch_thirdparty();
@@ -111,6 +141,7 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
                 
 }
 function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc){
+
     $result = $object->fetch($object->id); // Reload to get new records
 				$result = $object->fetch_thirdparty();
 				
@@ -250,9 +281,9 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 				// Send email
 				if (!empty($sendto) && !empty($from)) {
 					require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-					$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-					$result = $mailfile->sendfile();
-					send_sms("+212637342771", $message);
+					//$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+					//$result = $mailfile->sendfile();
+					//send_sms("+212637342771", $message);
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -267,9 +298,13 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 }
 function send_email_after_classify_paid($object, $paiement, $conf, $langs, $mysoc)
 
-{
-    if($conf->global->MAIN_MODULE_MAIL == 1){
-        $result = $object->fetch($object->id); // Reload to get new records
+{ 	
+	$okay = check($conf,"email_after_classify_as_paid");
+	
+	
+	if($okay  && $conf->global->MAIN_MODULE_MAIL == 1){
+		echo "will sent";
+		$result = $object->fetch($object->id); // Reload to get new records
 				$result = $object->fetch_thirdparty();
 				// get factures all paiements
 				$factures = $object->getListOfPayments();
@@ -334,7 +369,7 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 						setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
 					}
 				}
-    }
+	}
     else{
         return null;
     }
@@ -416,7 +451,14 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
                 
 }
 function send_email_after_validate_invoice($object, $conf, $langs, $mysoc){
+	$database_name = $conf->db->name;
+	$database_user_name = $conf->db->user;
+	$database_password = $conf->db->pass;
+	$database_host = $conf->db->host;
+	echo($database_name);
+	exit;
     if($conf->global->MAIN_MODULE_MAIL == 1){
+		// select * from llx_auto_send
         $result = $object->fetch($object->id); // Reload to get new records
 				$result = $object->fetch_thirdparty();
 				// get factures all paiements
