@@ -439,6 +439,7 @@ class Paiement extends CommonObject
 			$this->total = $total; // deprecated
 			$this->multicurrency_amount = $mtotal;
 			$this->db->commit();
+
 			// Get invoice name
 			$currency = $invoice->multicurrency_code;
 			$invoiceid = $invoice->ref;
@@ -473,15 +474,38 @@ class Paiement extends CommonObject
 			$filename_list = array($pdf_file);
 			$mimefilename_list = array($invoice->ref . '.pdf');
 			$mimetype_list = array('application/pdf');
-			//$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-			//$result = $mail->sendfile();
+			// get database name
+			//**************************** */
 
-			if ($result) {
-				setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-			} else {
-				setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $thirdpartmail, null, 'errors', 0, 'direct');
+			$database_name = $conf->db->name;
+			$database_user_name = $conf->db->user;
+			$database_password = $conf->db->pass;
+			$database_host = $conf->db->host;
+			$db = new mysqli($database_host, $database_user_name, $database_password, $database_name);
+			if ($db->connect_error) {
+				die("Connection failed: " . $db->connect_error);
 			}
-			// get total paid amount
+
+			// Execute the SQL statement and fetch the data
+			$sql = "SELECT * FROM llx_auto_send WHERE id = 1";
+			$result = $db->query($sql);
+			$data = $result->fetch_assoc();
+
+			// check if data[$method] is 1 or 0
+			if ($data["email_afteradd_payment"] == 1) {
+				$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+				$result = $mail->sendfile();
+				if ($result) {
+					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+				} else {
+					setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $thirdpartmail, null, 'errors', 0, 'direct');
+				}
+			}
+			if ($data["sms_afteradd_payment"] == 1) {
+				require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
+				send_sms("+212637342771", $message);
+			}
+			//**************************** */
 
 		} else {
 			$this->db->rollback();
