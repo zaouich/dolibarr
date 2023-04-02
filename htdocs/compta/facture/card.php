@@ -543,7 +543,7 @@ if (empty($reshook)) {
 			// Reaffichage de la zone date car elle est incorrecte
 			$action = 'valid';
 			setEventMessages($object->error, $object->errors, 'errors');
-		} 
+		}
 		if ($result > 0) {
 			require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
 			send_email_after_validate_invoice($object, $conf, $langs, $mysoc);
@@ -733,7 +733,7 @@ if (empty($reshook)) {
 		if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 		else {
 			require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-			//send_email_after_classify_paid($object, $paiement, $conf, $langs, $mysoc);
+			send_email_after_classify_paid($object, $paiement, $conf, $langs, $mysoc);
 		}
 	} // Classif "paid partialy"
 	elseif ($action == 'confirm_paid_partially' && $confirm == 'yes' && $usercanissuepayment) {
@@ -743,10 +743,10 @@ if (empty($reshook)) {
 		if ($close_code) {
 			$result = $object->set_paid($user, $close_code, $close_note);
 			if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
-			else{
+			else {
 				// get the cause of the partial payment
 				require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-				//send_email_after_classify_paid_partialy($object, $paiement, $conf, $langs, $mysoc);
+				send_email_after_classify_paid_partialy($object, $paiement, $conf, $langs, $mysoc);
 			}
 		} else {
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("Reason")), null, 'errors');
@@ -761,7 +761,7 @@ if (empty($reshook)) {
 			if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 			else {
 				require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-				//send_email_after_classify_abandoned($object, $conf, $langs, $mysoc);
+				send_email_after_classify_abandoned($object, $conf, $langs, $mysoc);
 			}
 		} else {
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("Reason")), null, 'errors');
@@ -934,7 +934,7 @@ if (empty($reshook)) {
 				var_dump($conf->global->MAIN_MODULE_MAIL);
 				$result = $paiement->delete(); // If fetch ok and found
 				require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-				//send_email_on_payment_delete($object, $paiement, $conf,$langs,$mysoc);
+				send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc);
 				header("Location: " . $_SERVER['PHP_SELF'] . "?id=" . $id);
 			}
 			if ($result < 0) {
