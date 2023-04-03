@@ -464,10 +464,12 @@ class Paiement extends CommonObject
 			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 			$subject = 'Payment Confirmation';
 			$message = "Dear customer \n your payment for invoice " . $invoiceid . " (payment ID: " . $payment_ref . ") " . "has been processed successfully \n" . "The amount paid is " . $mtotal . " " . $currency . " at " . date("Y-m-d H:i:s") . "\n The total amount paid is " . $total_paid_amount  . ' ' . $currency . " \n original amount is " . $invoice->total_ht . ' ' . $currency . "\nremaining amount is " .  $remaning_amount . " " . $currency . "\n";
-
+			$invoice_status = "";
 			if ($invoice->paye == 1) {
+				$invoice_status = "paid";
 				$message .= "The invoice status is :  paid.";
 			} else {
+				$invoice_status = "started";
 				$message .= " The invoice status is : started. ";
 			}
 
@@ -491,10 +493,350 @@ class Paiement extends CommonObject
 			$result = $db->query($sql);
 			$data = $result->fetch_assoc();
 
-			// check if data[$method] is 1 or 0
 			if ($data["email_afteradd_payment"] == 1) {
-				$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-				$result = $mail->sendfile();
+				$amount = "<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Amount</th>
+		<th>Value</th>
+		</tr>
+		<tr>
+		<td>Original Amount</td>
+		<td>" . $invoice->total_ht . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Total Paid</td>
+		<td>" . $total_paid_amount . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Left to Pay</td>
+		<td>" . $remaning_amount . $currency . "</td>
+		</tr>
+
+		</table>";
+				// get invoive all products and services
+				$invoice_products = $invoice->lines;
+				$products = "<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Product</th>
+		<th>Quantity</th>
+		<th>Price</th>
+		<th>Total</th>
+		<th>Discount</th>
+		<th>vat</th>
+		</tr>";
+				foreach ($invoice_products as $product) {
+					$products .= "<tr>
+			<td>" . $product->product_label . "</td>
+			<td>" . $product->qty . "</td>
+			<td>" . $product->subprice . $currency . "</td>
+			<td>" . $product->total_ht . $currency . "</td>
+			<td>" . $product->remise_percent . "</td>
+			<td>" . $product->tva_tx . "</td>
+			</tr>";
+				}
+				$products .= "</table>";
+				$message_ = '<!DOCTYPE html>
+
+				<html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
+				<head>
+				<title></title>
+				<meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+				<meta content="width=device-width, initial-scale=1.0" name="viewport"/><!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]-->
+				<style>
+						* {
+							box-sizing: border-box;
+						}
+				
+						body {
+							margin: 0;
+							padding: 0;
+						}
+				
+						a[x-apple-data-detectors] {
+							color: inherit !important;
+							text-decoration: inherit !important;
+						}
+				
+						#MessageViewBody a {
+							color: inherit;
+							text-decoration: none;
+						}
+				
+						p {
+							line-height: inherit
+						}
+				
+						.desktop_hide,
+						.desktop_hide table {
+							mso-hide: all;
+							display: none;
+							max-height: 0px;
+							overflow: hidden;
+						}
+				
+						.image_block img+div {
+							display: none;
+						}
+				
+						@media (max-width:520px) {
+							.desktop_hide table.icons-inner {
+								display: inline-block !important;
+							}
+				
+							.icons-inner {
+								text-align: center;
+							}
+				
+							.icons-inner td {
+								margin: 0 auto;
+							}
+				
+							.row-content {
+								width: 100% !important;
+							}
+				
+							.mobile_hide {
+								display: none;
+							}
+				
+							.stack .column {
+								width: 100%;
+								display: block;
+							}
+				
+							.mobile_hide {
+								min-height: 0;
+								max-height: 0;
+								max-width: 0;
+								overflow: hidden;
+								font-size: 0px;
+							}
+				
+							.desktop_hide,
+							.desktop_hide table {
+								display: table !important;
+								max-height: none !important;
+							}
+						}
+					</style>
+				</head>
+				<body style="background-color: #FFFFFF; margin: 0; padding: 0; -webkit-text-size-adjust: none; text-size-adjust: none;">
+				<table border="0" cellpadding="0" cellspacing="0" class="nl-container" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #FFFFFF;" width="100%">
+				<tbody>
+				<tr>
+				<td>
+				<table align="center" border="0" cellpadding="0" cellspacing="0" class="row row-1" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tbody>
+				<tr>
+				<td>
+				<table align="center" border="0" cellpadding="0" cellspacing="0" class="row-content stack" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000000; width: 500px;" width="500">
+				<tbody>
+				<tr>
+				<td class="column column-1" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; padding-bottom: 5px; padding-top: 5px; vertical-align: top; border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px;" width="100%">
+				<table border="0" cellpadding="0" cellspacing="0" class="heading_block block-1" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad" style="width:100%;text-align:center;">
+				<h1 style="margin: 0; color: #ef0707; font-size: 23px; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; line-height: 120%; text-align: center; direction: ltr; font-weight: 700; letter-spacing: normal; margin-top: 0; margin-bottom: 0;"><span class="tinyMce-placeholder">payment succeed !</span></h1>
+				</td>
+				</tr>
+				</table>
+				<div class="spacer_block block-2" style="height:50px;line-height:50px;font-size:1px;"> </div>
+				<table border="0" cellpadding="10" cellspacing="0" class="paragraph_block block-3" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;" width="100%">
+				<tr>
+				<td class="pad">
+				<div style="color:#000000;font-size:14px;font-family:Arial, "Helvetica Neue", Helvetica, sans-serif;font-weight:400;line-height:120%;text-align:left;direction:ltr;letter-spacing:0px;mso-line-height-alt:16.8px;">
+				<p style="margin: 0;">dear customer your payment is succeed , here is more information ! </p>
+				</div>
+				</td>
+				</tr>
+				</table>
+				<div class="spacer_block block-4" style="height:55px;line-height:55px;font-size:1px;"> </div>
+				<table border="0" cellpadding="0" cellspacing="0" class="heading_block block-5" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad" style="width:100%;text-align:center;">
+				<h2 style="margin: 0; color: #ef0707; font-size: 18px; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; line-height: 120%; text-align: left; direction: ltr; font-weight: 700; letter-spacing: normal; margin-top: 0; margin-bottom: 0;"><span class="tinyMce-placeholder">invoice info :</span></h2>
+				</td>
+				</tr>
+				</table>
+				<div class="spacer_block block-6" style="height:35px;line-height:35px;font-size:1px;"> </div>
+				<table border="0" cellpadding="0" cellspacing="0" class="html_block block-7" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad">
+				<div align="center" style="font-family:Arial, "Helvetica Neue", Helvetica, sans-serif;text-align:center;"><style>
+				table {
+				  border-collapse: collapse;
+				  width: 100%;
+				  max-width: 100%;
+				  margin-bottom: 1rem;
+				  background-color: transparent;
+				  font-size: 16px;
+				}
+				
+				th, td {
+				  padding: 0.75rem;
+				  vertical-align: top;
+				  border-top: 1px solid #dee2e6;
+				  word-wrap: break-word;
+				}
+				
+				thead th {
+				  vertical-align: bottom;
+				  border-bottom: 2px solid #dee2e6;
+				}
+				
+				tbody+tbody {
+				  border-top: 2px solid #dee2e6;
+				}
+				
+				.table-sm th, .table-sm td {
+				  padding: 0.3rem;
+				}
+				
+				@media (max-width: 767.98px) {
+				  table {
+					font-size: 14px;
+				  }
+				
+				  .table-responsive-sm {
+					display: block;
+					width: 100%;
+					overflow-x: auto;
+					-webkit-overflow-scrolling: touch;
+					-ms-overflow-style: -ms-autohiding-scrollbar;
+				  }
+				  .table-responsive-sm > .table-bordered {
+					border: 0;
+				  }
+				}
+				</style>' . $products .
+
+					'<div class="spacer_block block-8" style="height:55px;line-height:55px;font-size:1px;"> </div>
+				<table border="0" cellpadding="0" cellspacing="0" class="heading_block block-9" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad" style="width:100%;text-align:center;">
+				<h2 style="margin: 0; color: #ef0707; font-size: 18px; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; line-height: 120%; text-align: left; direction: ltr; font-weight: 700; letter-spacing: normal; margin-top: 0; margin-bottom: 0;"><span class="tinyMce-placeholder">paiement infos :</span></h2>
+				</td>
+				</tr>
+				</table>
+				<div class="spacer_block block-10" style="height:35px;line-height:35px;font-size:1px;"> </div>
+				<table border="0" cellpadding="0" cellspacing="0" class="html_block block-11" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad">
+				<div align="center" style="font-family:Arial, "Helvetica Neue", Helvetica, sans-serif;text-align:center;"><style>
+				table {
+				  border-collapse: collapse;
+				  width: 100%;
+				  max-width: 100%;
+				  margin-bottom: 1rem;
+				  background-color: transparent;
+				  font-size: 16px;
+				}
+				
+				th, td {
+				  padding: 0.75rem;
+				  vertical-align: top;
+				  border-top: 1px solid #dee2e6;
+				  word-wrap: break-word;
+				}
+				
+				thead th {
+				  vertical-align: bottom;
+				  border-bottom: 2px solid #dee2e6;
+				}
+				
+				tbody+tbody {
+				  border-top: 2px solid #dee2e6;
+				}
+				
+				.table-sm th, .table-sm td {
+				  padding: 0.3rem;
+				}
+				
+				@media (max-width: 767.98px) {
+				  table {
+					font-size: 14px;
+				  }
+				
+				  .table-responsive-sm {
+					display: block;
+					width: 100%;
+					overflow-x: auto;
+					-webkit-overflow-scrolling: touch;
+					-ms-overflow-style: -ms-autohiding-scrollbar;
+				  }
+				  .table-responsive-sm > .table-bordered {
+					border: 0;
+				  }
+				}
+				</style>
+				<div class="table-responsive-sm">' . $amount .
+
+					'</div>
+				</div>
+				</td>
+				</tr>
+				</table>
+				<div class="spacer_block block-12" style="height:55px;line-height:55px;font-size:1px;"> </div>
+				<table border="0" cellpadding="0" cellspacing="0" class="heading_block block-13" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad" style="width:100%;text-align:center;">
+				<h2 style="margin: 0; color: #ff0000; font-size: 18px; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; line-height: 120%; text-align: left; direction: ltr; font-weight: 700; letter-spacing: normal; margin-top: 0; margin-bottom: 0;"><span class="tinyMce-placeholder">actual invoice status : ' . $invoice_status . '</span></h2>
+				</td>
+				</tr>
+				</table>
+				</td>
+				</tr>
+				</tbody>
+				</table>
+				</td>
+				</tr>
+				</tbody>
+				</table>
+				<table align="center" border="0" cellpadding="0" cellspacing="0" class="row row-2" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tbody>
+				<tr>
+				<td>
+				<table align="center" border="0" cellpadding="0" cellspacing="0" class="row-content stack" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000000; width: 500px;" width="500">
+				<tbody>
+				<tr>
+				<td class="column column-1" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; padding-bottom: 5px; padding-top: 5px; vertical-align: top; border-top: 0px; border-right: 0px; border-bottom: 0px; border-left: 0px;" width="100%">
+				<table border="0" cellpadding="0" cellspacing="0" class="icons_block block-1" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="pad" style="vertical-align: middle; color: #9d9d9d; font-family: inherit; font-size: 15px; padding-bottom: 5px; padding-top: 5px; text-align: center;">
+				<table cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;" width="100%">
+				<tr>
+				<td class="alignment" style="vertical-align: middle; text-align: center;"><!--[if vml]><table align="left" cellpadding="0" cellspacing="0" role="presentation" style="display:inline-block;padding-left:0px;padding-right:0px;mso-table-lspace: 0pt;mso-table-rspace: 0pt;"><![endif]-->
+				<!--[if !vml]><!-->
+				<table cellpadding="0" cellspacing="0" class="icons-inner" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; display: inline-block; margin-right: -4px; padding-left: 0px; padding-right: 0px;"><!--<![endif]-->
+				<tr>
+				<td style="vertical-align: middle; text-align: center; padding-top: 5px; padding-bottom: 5px; padding-left: 5px; padding-right: 6px;"><a href="https://www.designedwithbee.com/" style="text-decoration: none;" target="_blank"><img align="center" alt="Designed with BEE" class="icon" height="32" src="images/bee.png" style="display: block; height: auto; margin: 0 auto; border: 0;" width="34"/></a></td>
+				<td style="font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; font-size: 15px; color: #9d9d9d; vertical-align: middle; letter-spacing: undefined; text-align: center;"><a href="https://www.designedwithbee.com/" style="color: #9d9d9d; text-decoration: none;" target="_blank">Designed with BEE</a></td>
+				</tr>
+				</table>
+				</td>
+				</tr>
+				</table>
+				</td>
+				</tr>
+				</table>
+				</td>
+				</tr>
+				</tbody>
+				</table>
+				</td>
+				</tr>
+				</tbody>
+				</table>
+				</td>
+				</tr>
+				</tbody>
+				</table><!-- End -->
+				</body>
+				</html>';
+
+				//$mail = new CMailFile($subject, $thirdpartmail, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mail->sendfile();
+				echo $message_;
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -503,7 +845,10 @@ class Paiement extends CommonObject
 			}
 			if ($data["sms_afteradd_payment"] == 1) {
 				require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-				send_sms("+212637342771", $message);
+				echo "***************";
+				echo $message;
+				exit;
+				//send_sms("+212637342771", $message);
 			}
 			//**************************** */
 
