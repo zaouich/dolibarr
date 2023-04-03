@@ -121,8 +121,53 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 			$okay_mail = check($conf, "email_after_delete_payment");
 			$okay_sms = check($conf, "sms_after_delete_payment");
 			if ($okay_mail) {
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+				$amount = "<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Amount</th>
+		<th>Value</th>
+		</tr>
+		<tr>
+		<td>Original Amount</td>
+		<td>" . $original_amount . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Total Paid</td>
+		<td>" . $total_paid . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Left to Pay</td>
+		<td>" . $left_to_pay . $currency . "</td>
+		</tr>
+
+		</table>";
+
+				$products = $object->lines;
+
+				$table = "<table border='1' style='border-collapse: collapse;'>
+		<tr>
+		<th>Product</th>
+		<th>Quantity</th>
+		<th>Price</th>
+		<th>Total</th>
+		<th>Discount</th>
+		<th>Vat</th>
+		</tr>";
+				foreach ($products as $product) {
+					$table .= "<tr>
+			<td>" . $product->product_label . "</td>
+			<td>" . $product->qty . "</td>
+			<td>" . $product->subprice . "</td>
+			<td>" . $product->total_ht . "</td>
+			<td>" . $product->remise_percent . "</td>
+			<td>" . $product->tva_tx . "</td>
+			</tr>";
+				}
+				$table .= "</table>";
+				$message_ = $table . $amount;
+				echo $message_;
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
 				//$result = $mailfile->sendfile();
+
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -196,6 +241,8 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 		$message = 'dear customer, your facture ' . $invoice_ref . " is canceled \n for more information please contact us \n thank you";
 		$sendto = $object->thirdparty->email;
 		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+		// cancelation reason
+
 		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
 		// Send email
 		if (!empty($sendto) && !empty($from)) {
@@ -596,7 +643,108 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 
 				$products = $object->lines;
 
-				$table = "<table border='1' style='border-collapse: collapse;'>
+				$table = "
+				<html>
+				<style>
+				table {
+					border-collapse: collapse;
+					width: 100%;
+					max-width: 100%;
+					margin-bottom: 1rem;
+					background-color: transparent;
+					font-size: 16px;
+				  }
+				  
+				  th, td {
+					padding: 0.75rem;
+					vertical-align: top;
+					border-top: 1px solid #dee2e6;
+				  }
+				  
+				  thead th {
+					vertical-align: bottom;
+					border-bottom: 2px solid #dee2e6;
+				  }
+				  
+				  tbody+tbody {
+					border-top: 2px solid #dee2e6;
+				  }
+				  
+				  .table-sm th, .table-sm td {
+					padding: 0.3rem;
+				  }
+				  
+				  @media (max-width: 767.98px) {
+					table {
+					  font-size: 14px;
+					}
+				  
+					.table-responsive-sm {
+					  display: block;
+					  width: 100%;
+					  overflow-x: auto;
+					  -webkit-overflow-scrolling: touch;
+					  -ms-overflow-style: -ms-autohiding-scrollbar;
+					}
+					.table-responsive-sm > .table-bordered {
+					  border: 0;
+					}
+				  }
+				</style>
+				<div class='table-wrapper'>
+				<div class='container'>
+				<table border='1' style='border-collapse: collapse;'>
+				<style>
+				table {
+					border-collapse: collapse;
+					width: 100%;
+					max-width: 100%;
+					margin-bottom: 1rem;
+					background-color: transparent;
+					font-size: 16px;
+				  }
+				  
+				  th, td {
+					padding: 0.75rem;
+					vertical-align: top;
+					border-top: 1px solid #dee2e6;
+				  }
+				  
+				  thead th {
+					vertical-align: bottom;
+					border-bottom: 2px solid #dee2e6;
+				  }
+				  
+				  tbody+tbody {
+					border-top: 2px solid #dee2e6;
+				  }
+				  
+				  .table-sm th, .table-sm td {
+					padding: 0.3rem;
+				  }
+				  
+				  @media (max-width: 767.98px) {
+					table {
+					  font-size: 14px;
+					}
+					/* hide table headers on small screens */
+					thead {
+					  display: none;
+					}
+					/* make each row a block element */
+					tbody tr {
+					  display: block;
+					  margin-bottom: 1rem;
+					  border: 1px solid #dee2e6;
+					}
+					/* make each cell a block element */
+					tbody td {
+					  display: block;
+					  text-align: center;
+					}
+				  }
+				  
+				</style>
 		<tr>
 		<th>Product</th>
 		<th>Quantity</th>
@@ -615,7 +763,7 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 			<td>" . $product->tva_tx . "</td>
 			</tr>";
 				}
-				$table .= "</table>";
+				$table .= "</div></div></table></html>";
 				$message_ = $table . $amount;
 				echo $message_;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
