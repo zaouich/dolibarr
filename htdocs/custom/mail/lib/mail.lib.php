@@ -121,8 +121,8 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 			$okay_mail = check($conf, "email_after_delete_payment");
 			$okay_sms = check($conf, "sms_after_delete_payment");
 			if ($okay_mail) {
-				$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-				$result = $mailfile->sendfile();
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -130,7 +130,11 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				send_sms("+212637342771", $message);
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
 			} else {
 				return null;
 			}
@@ -160,8 +164,8 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 				$okay_mail = check($conf, "email_after_delete_invoice");
 				$okay_sms = check($conf, "sms_after_delete_invoice");
 				if ($okay_mail) {
-					$mailfile = new CMailFile($subject, $sendto, $from, $message);
-					$result = $mailfile->sendfile();
+					//$mailfile = new CMailFile($subject, $sendto, $from, $message);
+					//$result = $mailfile->sendfile();
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -169,7 +173,11 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 					}
 				}
 				if ($okay_sms) {
-					send_sms("+212637342771", $message);
+					//send_sms("+212637342771", $message);
+					echo "***********************************";
+					echo "sms sent";
+					echo $message;
+					exit;
 				} else {
 					return null;
 				}
@@ -195,8 +203,8 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 			$okay_mail = check($conf, "email_after_cancel_payment");
 			$okay_sms = check($conf, "sms_after_cancel_payment");
 			if ($okay_mail) {
-				$mailfile = new CMailFile($subject, $sendto, $from, $message);
-				$result = $mailfile->sendfile();
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message);
+				//$result = $mailfile->sendfile();
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -204,7 +212,11 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				send_sms("+212637342771", $message);
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
 			} else {
 				return null;
 			}
@@ -288,12 +300,58 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 			$okay_sms = check($conf, "sms_after_reopen_invoice");
 			if ($okay_mail) {
 
-				$mailfile = new CMailFile($subject, $sendto, $from, $link_to_download_attachment, $filename_list, $mimetype_list, $mimefilename_list);
-				// change the header to html
-				$mailfile->headers['Content-Type'] = 'text/html; charset=UTF-8';
+				$amount = "<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Amount</th>
+		<th>Value</th>
+		</tr>
+		<tr>
+		<td>Original Amount</td>
+		<td>" . $original_amount . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Total Paid</td>
+		<td>" . $total_paid . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Left to Pay</td>
+		<td>" . $left_to_pay . $currency . "</td>
+		</tr>
 
+		</table>";
 
-				$result = $mailfile->sendfile();
+				$products = $object->lines;
+
+				$table = "<table border='1' style='border-collapse: collapse;'>
+		<tr>
+		<th>Product</th>
+		<th>Quantity</th>
+		<th>Price</th>
+		<th>Total</th>
+		<th>Discount</th>
+		<th>Vat</th>
+		</tr>";
+				foreach ($products as $product) {
+					$table .= "<tr>
+			<td>" . $product->product_label . "</td>
+			<td>" . $product->qty . "</td>
+			<td>" . $product->subprice . "</td>
+			<td>" . $product->total_ht . "</td>
+			<td>" . $product->remise_percent . "</td>
+			<td>" . $product->tva_tx . "</td>
+			</tr>";
+				}
+				$table .= "</table>";
+				$message_ = $table . $amount;
+				echo $message_;
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
+
+				if ($result) {
+					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+				} else {
+					setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
+				}
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -301,7 +359,11 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				send_sms("+212637342771", $message);
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
 			} else {
 				return null;
 			}
@@ -379,8 +441,53 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 			$okay_sms = check($conf, "sms_after_classify_as_paid");
 			if ($okay_mail) {
 
-				$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-				$result = $mailfile->sendfile();
+				$amount = "<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Amount</th>
+		<th>Value</th>
+		</tr>
+		<tr>
+		<td>Original Amount</td>
+		<td>" . $original_amount . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Total Paid</td>
+		<td>" . $total_paid . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Left to Pay</td>
+		<td>" . $left_to_pay . $currency . "</td>
+		</tr>
+
+		</table>";
+
+				$products = $object->lines;
+
+				$table = "<table border='1' style='border-collapse: collapse;'>
+		<tr>
+		<th>Product</th>
+		<th>Quantity</th>
+		<th>Price</th>
+		<th>Total</th>
+		<th>Discount</th>
+		<th>Vat</th>
+		</tr>";
+				foreach ($products as $product) {
+					$table .= "<tr>
+			<td>" . $product->product_label . "</td>
+			<td>" . $product->qty . "</td>
+			<td>" . $product->subprice . "</td>
+			<td>" . $product->total_ht . "</td>
+			<td>" . $product->remise_percent . "</td>
+			<td>" . $product->tva_tx . "</td>
+			</tr>";
+				}
+				$table .= "</table>";
+				$message_ = $table . $amount;
+				echo $message_;
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
+
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -388,7 +495,11 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 				}
 			}
 			if ($okay_sms) {
-				send_sms("+212637342771", $message);
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
 			} else {
 				return null;
 			}
@@ -400,6 +511,7 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 function send_email_after_classify_paid_partialy($object, $paiement, $conf, $langs, $mysoc)
 
 {
+
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
@@ -458,12 +570,57 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 		// Send email
 		if (!empty($sendto) && !empty($from)) {
 			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-			$okay_mail = check($conf, "email_after_classify_as_paid_partialy");
-			$okay_sms = check($conf, "sms_after_classify_as_paid_partialy");
-			if ($okay_mail) {
+			$okay_mail = check($conf, "email_after_classify_as_paid_partially");
+			$okay_sms = check($conf, "sms_after_classify_as_paid_partially");
 
-				$mailfile = new CMailFile($subject, $sendto, $from, $message, $filename_list, $mimetype_list, $mimefilename_list);
-				$result = $mailfile->sendfile();
+			if ($okay_mail) {
+				$amount = "<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Amount</th>
+		<th>Value</th>
+		</tr>
+		<tr>
+		<td>Original Amount</td>
+		<td>" . $original_amount . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Total Paid</td>
+		<td>" . $total_paid . $currency . "</td>
+		</tr>
+		<tr>
+		<td>Left to Pay</td>
+		<td>" . $left_to_pay . $currency . "</td>
+		</tr>
+
+		</table>";
+
+				$products = $object->lines;
+
+				$table = "<table border='1' style='border-collapse: collapse;'>
+		<tr>
+		<th>Product</th>
+		<th>Quantity</th>
+		<th>Price</th>
+		<th>Total</th>
+		<th>Discount</th>
+		<th>Vat</th>
+		</tr>";
+				foreach ($products as $product) {
+					$table .= "<tr>
+			<td>" . $product->product_label . "</td>
+			<td>" . $product->qty . "</td>
+			<td>" . $product->subprice . "</td>
+			<td>" . $product->total_ht . "</td>
+			<td>" . $product->remise_percent . "</td>
+			<td>" . $product->tva_tx . "</td>
+			</tr>";
+				}
+				$table .= "</table>";
+				$message_ = $table . $amount;
+				echo $message_;
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
+
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -471,8 +628,11 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 				}
 			}
 			if ($okay_sms) {
-
-				send_sms("+212637342771", $message);
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
 			} else {
 				return null;
 			}
@@ -589,8 +749,8 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 				$table .= "</table>";
 				$message_ = $table . $amount;
 				echo $message_;
-				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				$result = $mailfile->sendfile();
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -599,7 +759,7 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				send_sms("+212637342771", $message);
+				//send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
