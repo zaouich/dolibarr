@@ -1,10 +1,76 @@
 <?php
 
-
-
+use phpDocumentor\Reflection\DocBlock\Description;
 use Twilio\Rest\Client;
 
 require_once(__DIR__ . '/../../../includes/twilio/sdk/src/Twilio/autoload.php');
+function email_template($invoice, $currency, $total_paid_amount, $remaning_amount, $title, $description, $more)
+{
+	// 1) create the amount table
+	$amount = "";
+	if ($more) {
+		$amount = "
+		<h1>your paiment infos</h1>
+		<table  border='1' style='border-collapse: collapse;> '
+	<tr>
+	<th>Amount</th>
+	<th>Value</th>
+	</tr>
+	<tr>
+	<td>Original Amount</td>
+	<td>" . $invoice->total_ht . $currency . "</td>
+	</tr>
+	<tr>
+	<td>Total Paid</td>
+	<td>" . $total_paid_amount . $currency . "</td>
+	</tr>
+	<tr>
+	<td>Left to Pay</td>
+	<td>" . $remaning_amount . $currency . "</td>
+	</tr>
+
+	</table>";
+	} else {
+		$amount = "";
+	}
+
+	// 2) create the invoice table
+	$invoice_products = $invoice->lines;
+	$products = "";
+	if ($more) {
+		$products = "
+		<h1>the invoice infos : </h1>
+		<table  border='1' style='border-collapse: collapse;> '
+		<tr>
+		<th>Product</th>
+		<th>Quantity</th>
+		<th>Price</th>
+		<th>Total</th>
+		<th>Discount</th>
+		<th>vat</th>
+		</tr>";
+		foreach ($invoice_products as $product) {
+			$products .= "<tr>
+	<td>" . $product->product_label . "</td>
+	<td>" . $product->qty . "</td>
+	<td>" . $product->subprice . $currency . "</td>
+	<td>" . $product->total_ht . $currency . "</td>
+	<td>" . $product->remise_percent . "</td>
+	<td>" . $product->tva_tx . "</td>
+	</tr></table>";
+		}
+	} else {
+		$products = "";
+	}
+	// 3) create template header
+	$template_header = "<div>";
+	$template_header .= "<h1>" . $title . "</h1>";
+	$template_header .= "<h3>" . $description . "</h3>";
+	$template_header .= "<div>";
+	// 3) create the message then return it
+	$email_message =  $template_header . $products . $amount;
+	return $email_message;
+}
 function check($conf, $method)
 {
 	$database_name = $conf->db->name;
@@ -121,50 +187,17 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 			$okay_mail = check($conf, "email_after_delete_payment");
 			$okay_sms = check($conf, "sms_after_delete_payment");
 			if ($okay_mail) {
-				$amount = "<table  border='1' style='border-collapse: collapse;> '
-		<tr>
-		<th>Amount</th>
-		<th>Value</th>
-		</tr>
-		<tr>
-		<td>Original Amount</td>
-		<td>" . $original_amount . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Total Paid</td>
-		<td>" . $total_paid . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Left to Pay</td>
-		<td>" . $left_to_pay . $currency . "</td>
-		</tr>
-
-		</table>";
-
-				$products = $object->lines;
-
-				$table = "<table border='1' style='border-collapse: collapse;'>
-		<tr>
-		<th>Product</th>
-		<th>Quantity</th>
-		<th>Price</th>
-		<th>Total</th>
-		<th>Discount</th>
-		<th>Vat</th>
-		</tr>";
-				foreach ($products as $product) {
-					$table .= "<tr>
-			<td>" . $product->product_label . "</td>
-			<td>" . $product->qty . "</td>
-			<td>" . $product->subprice . "</td>
-			<td>" . $product->total_ht . "</td>
-			<td>" . $product->remise_percent . "</td>
-			<td>" . $product->tva_tx . "</td>
-			</tr>";
-				}
-				$table .= "</table>";
-				$message_ = $table . $amount;
-				echo $message_;
+				$description = "dear customer \n the payment with the ref (" . $deleted_id . ") was deleted from the invoice with the ref ( " . $object->ref . ")";
+				$message = email_template($object, $currency, $original_amount, $left_to_pay, "payment deleted !", $description, true);
+				$message .= "<table>
+				<tr>
+					<th>deleted payment</th>
+				<tr>
+				<tr>
+					<th>" . $deleted_montant . "</th>
+				<tr>
+				</table>";
+				echo $message;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
 				//$result = $mailfile->sendfile();
 
@@ -209,6 +242,13 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 				$okay_mail = check($conf, "email_after_delete_invoice");
 				$okay_sms = check($conf, "sms_after_delete_invoice");
 				if ($okay_mail) {
+
+					$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice deleted', $message, false);
+					echo $message_;
+					exit;
+					$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is deleted \n";
+					$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice deleted !', $description, true);
+					echo $message_;
 					//$mailfile = new CMailFile($subject, $sendto, $from, $message);
 					//$result = $mailfile->sendfile();
 					if ($result) {
@@ -243,6 +283,7 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
 		// cancelation reason
 
+		// 
 		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
 		// Send email
 		if (!empty($sendto) && !empty($from)) {
@@ -250,6 +291,9 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 			$okay_mail = check($conf, "email_after_cancel_payment");
 			$okay_sms = check($conf, "sms_after_cancel_payment");
 			if ($okay_mail) {
+				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is canceled \n";
+				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice canceled !', $description, true);
+				echo $message_;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message);
 				//$result = $mailfile->sendfile();
 				if ($result) {
@@ -262,6 +306,7 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 				//send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
+
 				echo $message;
 				exit;
 			} else {
@@ -272,6 +317,7 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 }
 function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 {
+
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
@@ -339,66 +385,19 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 			$mimefilename_list[] = $object->ref . '.pdf';
 			$mimetype_list[] = 'application/pdf';
 		}
-		$link_to_download_attachment = '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=facture&file=' . $object->ref . '/' . $object->ref . '.pdf">download the invoice</a>';
 		// Send email
 		if (!empty($sendto) && !empty($from)) {
 			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 			$okay_mail = check($conf, "email_after_reopen_invoice");
 			$okay_sms = check($conf, "sms_after_reopen_invoice");
 			if ($okay_mail) {
-
-				$amount = "<table  border='1' style='border-collapse: collapse;> '
-		<tr>
-		<th>Amount</th>
-		<th>Value</th>
-		</tr>
-		<tr>
-		<td>Original Amount</td>
-		<td>" . $original_amount . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Total Paid</td>
-		<td>" . $total_paid . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Left to Pay</td>
-		<td>" . $left_to_pay . $currency . "</td>
-		</tr>
-
-		</table>";
-
-				$products = $object->lines;
-
-				$table = "<table border='1' style='border-collapse: collapse;'>
-		<tr>
-		<th>Product</th>
-		<th>Quantity</th>
-		<th>Price</th>
-		<th>Total</th>
-		<th>Discount</th>
-		<th>Vat</th>
-		</tr>";
-				foreach ($products as $product) {
-					$table .= "<tr>
-			<td>" . $product->product_label . "</td>
-			<td>" . $product->qty . "</td>
-			<td>" . $product->subprice . "</td>
-			<td>" . $product->total_ht . "</td>
-			<td>" . $product->remise_percent . "</td>
-			<td>" . $product->tva_tx . "</td>
-			</tr>";
-				}
-				$table .= "</table>";
-				$message_ = $table . $amount;
+				// 
+				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is reopened \n";
+				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice reopened !', $description, true);
 				echo $message_;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
 				//$result = $mailfile->sendfile();
 
-				if ($result) {
-					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-				} else {
-					setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
-				}
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -488,287 +487,9 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 			$okay_sms = check($conf, "sms_after_classify_as_paid");
 			if ($okay_mail) {
 
-				$amount = "<table  border='1' style='border-collapse: collapse;> '
-		<tr>
-		<th>Amount</th>
-		<th>Value</th>
-		</tr>
-		<tr>
-		<td>Original Amount</td>
-		<td>" . $original_amount . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Total Paid</td>
-		<td>" . $total_paid . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Left to Pay</td>
-		<td>" . $left_to_pay . $currency . "</td>
-		</tr>
-
-		</table>";
-
-				$products = $object->lines;
-
-				$table = "<table border='1' style='border-collapse: collapse;'>
-		<tr>
-		<th>Product</th>
-		<th>Quantity</th>
-		<th>Price</th>
-		<th>Total</th>
-		<th>Discount</th>
-		<th>Vat</th>
-		</tr>";
-				foreach ($products as $product) {
-					$table .= "<tr>
-			<td>" . $product->product_label . "</td>
-			<td>" . $product->qty . "</td>
-			<td>" . $product->subprice . "</td>
-			<td>" . $product->total_ht . "</td>
-			<td>" . $product->remise_percent . "</td>
-			<td>" . $product->tva_tx . "</td>
-			</tr>";
-				}
-				$table .= "</table>";
-				$message_ = $table . $amount;
+				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is paid \n";
+				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice paid !', $description, true);
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
-
-				if ($result) {
-					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
-				} else {
-					setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
-				}
-			}
-			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
-				echo "***********************************";
-				echo "sms sent";
-				echo $message;
-				exit;
-			} else {
-				return null;
-			}
-		}
-	} else {
-		return null;
-	}
-}
-function send_email_after_classify_paid_partialy($object, $paiement, $conf, $langs, $mysoc)
-
-{
-
-	if ($conf->global->MAIN_MODULE_MAIL == 1) {
-		$result = $object->fetch($object->id); // Reload to get new records
-		$result = $object->fetch_thirdparty();
-		// get factures all paiements
-		$factures = $object->getListOfPayments();
-		// get montatnt of the deleted paiement
-		$deleted_montant = $paiement->montant;
-		// get id of the deleted paiement
-		$deleted_id = $paiement->ref;
-
-		// get total paid
-		$total_paid = $object->getSommePaiement();
-		if (!$total_paid) {
-			$total_paid = 0;
-		}
-		// get original amount
-		$original_amount = $object->total_ttc;
-		$original_amount = number_format($original_amount, 2, '.', '');
-
-		// get left to pay
-		$left_to_pay = 0;
-
-		// get deleted paiement full date with the time
-		$deleted_date = $paiement->datepaye;
-		// format date
-		$deleted_date = date('d/m/Y', $deleted_date);
-		// check the status of the invoice if its started or not
-
-
-		// get the currency of the invoice
-		$currency = $object->multicurrency_code;
-
-		$message = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is partially paid \n the current total paid is :" . $total_paid . $currency . " \n the original amount is :" . $original_amount . $currency . " \n the left to pay is :" . $left_to_pay . $currency . " \n thank you";
-		// send email
-		$sendto = $object->thirdparty->email;
-		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
-
-		$filename_list = array();
-		$mimefilename_list = array();
-		$mimetype_list = array();
-
-		// Generate PDF
-		$resultPDF = $object->generateDocument($object->modelpdf, $langs);
-		if ($resultPDF <= 0) {
-			setEventMessages($object->error, $object->errors, 'errors');
-		} else {
-			$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/') . '[^\-]+');
-			$file = $fileparams['fullname'];
-
-			$filename_list[] = $file;
-			$mimefilename_list[] = $object->ref . '.pdf';
-			$mimetype_list[] = 'application/pdf';
-		}
-
-		// Send email
-		if (!empty($sendto) && !empty($from)) {
-			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-			$okay_mail = check($conf, "email_after_classify_as_paid_partially");
-			$okay_sms = check($conf, "sms_after_classify_as_paid_partially");
-
-			if ($okay_mail) {
-				$amount = "<table  border='1' style='border-collapse: collapse;> '
-		<tr>
-		<th>Amount</th>
-		<th>Value</th>
-		</tr>
-		<tr>
-		<td>Original Amount</td>
-		<td>" . $original_amount . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Total Paid</td>
-		<td>" . $total_paid . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Left to Pay</td>
-		<td>" . $left_to_pay . $currency . "</td>
-		</tr>
-
-		</table>";
-
-				$products = $object->lines;
-
-				$table = "
-				<html>
-				<style>
-				table {
-					border-collapse: collapse;
-					width: 100%;
-					max-width: 100%;
-					margin-bottom: 1rem;
-					background-color: transparent;
-					font-size: 16px;
-				  }
-				  
-				  th, td {
-					padding: 0.75rem;
-					vertical-align: top;
-					border-top: 1px solid #dee2e6;
-				  }
-				  
-				  thead th {
-					vertical-align: bottom;
-					border-bottom: 2px solid #dee2e6;
-				  }
-				  
-				  tbody+tbody {
-					border-top: 2px solid #dee2e6;
-				  }
-				  
-				  .table-sm th, .table-sm td {
-					padding: 0.3rem;
-				  }
-				  
-				  @media (max-width: 767.98px) {
-					table {
-					  font-size: 14px;
-					}
-				  
-					.table-responsive-sm {
-					  display: block;
-					  width: 100%;
-					  overflow-x: auto;
-					  -webkit-overflow-scrolling: touch;
-					  -ms-overflow-style: -ms-autohiding-scrollbar;
-					}
-					.table-responsive-sm > .table-bordered {
-					  border: 0;
-					}
-				  }
-				</style>
-				<div class='table-wrapper'>
-				<div class='container'>
-				<table border='1' style='border-collapse: collapse;'>
-				<style>
-				table {
-					border-collapse: collapse;
-					width: 100%;
-					max-width: 100%;
-					margin-bottom: 1rem;
-					background-color: transparent;
-					font-size: 16px;
-				  }
-				  
-				  th, td {
-					padding: 0.75rem;
-					vertical-align: top;
-					border-top: 1px solid #dee2e6;
-				  }
-				  
-				  thead th {
-					vertical-align: bottom;
-					border-bottom: 2px solid #dee2e6;
-				  }
-				  
-				  tbody+tbody {
-					border-top: 2px solid #dee2e6;
-				  }
-				  
-				  .table-sm th, .table-sm td {
-					padding: 0.3rem;
-				  }
-				  
-				  @media (max-width: 767.98px) {
-					table {
-					  font-size: 14px;
-					}
-					/* hide table headers on small screens */
-					thead {
-					  display: none;
-					}
-					/* make each row a block element */
-					tbody tr {
-					  display: block;
-					  margin-bottom: 1rem;
-					  border: 1px solid #dee2e6;
-					}
-					/* make each cell a block element */
-					tbody td {
-					  display: block;
-					  text-align: center;
-					}
-				  }
-				  
-				</style>
-		<tr>
-		<th>Product</th>
-		<th>Quantity</th>
-		<th>Price</th>
-		<th>Total</th>
-		<th>Discount</th>
-		<th>Vat</th>
-		</tr>";
-				foreach ($products as $product) {
-					$table .= "<tr>
-			<td>" . $product->product_label . "</td>
-			<td>" . $product->qty . "</td>
-			<td>" . $product->subprice . "</td>
-			<td>" . $product->total_ht . "</td>
-			<td>" . $product->remise_percent . "</td>
-			<td>" . $product->tva_tx . "</td>
-			</tr>";
-				}
-				$table .= "</div></div></table></html>";
-				$message_ = $table . $amount;
-				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
-
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -853,50 +574,10 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 			$okay_mail = check($conf, "email_after_create_invoice");
 			$okay_sms = check($conf, "sms_after_create_invoice");
 			if ($okay_mail) {
-				$amount = "<table  border='1' style='border-collapse: collapse;> '
-		<tr>
-		<th>Amount</th>
-		<th>Value</th>
-		</tr>
-		<tr>
-		<td>Original Amount</td>
-		<td>" . $original_amount . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Total Paid</td>
-		<td>" . $total_paid . $currency . "</td>
-		</tr>
-		<tr>
-		<td>Left to Pay</td>
-		<td>" . $left_to_pay . $currency . "</td>
-		</tr>
-
-		</table>";
-
-				$products = $object->lines;
-
-				$table = "<table border='1' style='border-collapse: collapse;'>
-		<tr>
-		<th>Product</th>
-		<th>Quantity</th>
-		<th>Price</th>
-		<th>Total</th>
-		<th>Discount</th>
-		<th>Vat</th>
-		</tr>";
-				foreach ($products as $product) {
-					$table .= "<tr>
-			<td>" . $product->product_label . "</td>
-			<td>" . $product->qty . "</td>
-			<td>" . $product->subprice . "</td>
-			<td>" . $product->total_ht . "</td>
-			<td>" . $product->remise_percent . "</td>
-			<td>" . $product->tva_tx . "</td>
-			</tr>";
-				}
-				$table .= "</table>";
-				$message_ = $table . $amount;
+				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is created \n";
+				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice created !', $description, true);
 				echo $message_;
+				exit;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
 				//$result = $mailfile->sendfile();
 
