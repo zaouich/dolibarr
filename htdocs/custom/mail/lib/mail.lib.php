@@ -12,15 +12,18 @@ function get_left_to_pay($conf, $invoice_id)
 	$database_host = $conf->db->host;
 	$db = new mysqli($database_host, $database_user_name, $database_password, $database_name);
 	if ($db->connect_error) {
+		echo "not connected";
 		die("Connection failed: " . $db->connect_error);
+	} else {
+		echo "connected";
 	}
 	// Execute the SQL statement and fetch the data
 	$sql = "SELECT count(*) FROM llx_paiement_facture WHERE fk_facture = $invoice_id";
 	echo $invoice_id;
 	$result = $db->query($sql);
+	echo "result of query : " . $result;
 	var_dump($result);
 
-	echo "result : " . $result;
 	exit;
 	return $result;
 }
@@ -661,9 +664,11 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 }
 function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 {
+
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
+		$invoice_paid = get_left_to_pay($conf, $object->fk_facture);
 		// get factures all paiements
 		$factures = $object->getListOfPayments();
 		// get montatnt of the deleted paiement
