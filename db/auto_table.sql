@@ -21,6 +21,7 @@ CREATE TABLE llx_auto_send (
    sms_after_validate_commande TINYINT(1) NOT NULL DEFAULT 0,
    email_after_validate_commande TINYINT(1) NOT NULL DEFAULT 0,
    sms_after_sending_commande TINYINT(1) NOT NULL DEFAULT 0,
+  email_after_sending_commande TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
 
