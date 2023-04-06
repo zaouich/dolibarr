@@ -29,19 +29,25 @@
 // Load Dolibarr environment
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
-if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"] . "/main.inc.php";
 // Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
-$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME']; $tmp2 = realpath(__FILE__); $i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
-while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) { $i--; $j--; }
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) $res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) $res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+$tmp2 = realpath(__FILE__);
+$i = strlen($tmp) - 1;
+$j = strlen($tmp2) - 1;
+while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
+	$i--;
+	$j--;
+}
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1)) . "/main.inc.php")) $res = @include substr($tmp, 0, ($i + 1)) . "/main.inc.php";
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php")) $res = @include dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php";
 // Try main.inc.php using relative path
 if (!$res && file_exists("../main.inc.php")) $res = @include "../main.inc.php";
 if (!$res && file_exists("../../main.inc.php")) $res = @include "../../main.inc.php";
 if (!$res && file_exists("../../../main.inc.php")) $res = @include "../../../main.inc.php";
 if (!$res) die("Include of main fails");
 
-require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
+require_once DOL_DOCUMENT_ROOT . '/core/class/html.formfile.class.php';
 
 // Load translation files required by the page
 $langs->loadLangs(array("mail@mail"));
@@ -52,8 +58,7 @@ $action = GETPOST('action', 'alpha');
 // Security check
 //if (! $user->rights->mail->myobject->read) accessforbidden();
 $socid = GETPOST('socid', 'int');
-if (isset($user->socid) && $user->socid > 0)
-{
+if (isset($user->socid) && $user->socid > 0) {
 	$action = '';
 	$socid = $user->socid;
 }
@@ -97,27 +102,34 @@ $sms_after_classify_as_paid_checked = $data['sms_after_classify_as_paid'] ? 'che
 $email_after_classify_as_paid_checked = $data['email_after_classify_as_paid'] ? 'checked' : '';
 $sms_after_classify_as_paid_partially_checked = $data['sms_after_classify_as_paid_partially'] ? 'checked' : '';
 $email_after_classify_as_paid_partially_checked = $data['email_after_classify_as_paid_partially'] ? 'checked' : '';
+$sms_after_validate_commande = $data['sms_after_validate_commande'] ? 'checked' : '';
+$email_after_validate_commande = $data['email_after_validate_commande'] ? 'checked' : '';
+$sms_after_sending_commande = $data['sms_after_sending_commande'] ? 'checked' : '';
+$email_after_sending_commande = $data['email_after_sending_commande'] ? 'checked' : '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get the values of the checkboxes from the form
-    $sms_after_create_invoice = isset($_POST['sms_after_create_invoice']) ? 1 : 0;
-    $email_after_create_invoice = isset($_POST['email_after_create_invoice']) ? 1 : 0;
-    $sms_after_delete_invoice = isset($_POST['sms_after_delete_invoice']) ? 1 : 0;
-    $email_after_delete_invoice = isset($_POST['email_after_delete_invoice']) ? 1 : 0;
-    $sms_afteradd_payment = isset($_POST['sms_afteradd_payment']) ? 1 : 0;
-    $email_afteradd_payment = isset($_POST['email_afteradd_payment']) ? 1 : 0;
-    $sms_after_delete_payment = isset($_POST['sms_after_delete_payment']) ? 1 : 0;
-    $email_after_delete_payment = isset($_POST['email_after_delete_payment']) ? 1 : 0;
-    $sms_after_cancel_payment = isset($_POST['sms_after_cancel_payment']) ? 1 : 0;
-    $email_after_cancel_payment = isset($_POST['email_after_cancel_payment']) ? 1 : 0;
-    $sms_after_reopen_invoice = isset($_POST['sms_after_reopen_invoice']) ? 1 : 0;
-    $email_after_reopen_invoice = isset($_POST['email_after_reopen_invoice']) ? 1 : 0;
-    $sms_after_classify_as_paid = isset($_POST['sms_after_classify_as_paid']) ? 1 : 0;
-    $email_after_classify_as_paid = isset($_POST['email_after_classify_as_paid']) ? 1 : 0;
-    $sms_after_classify_as_paid_partially = isset($_POST['sms_after_classify_as_paid_partially']) ? 1 : 0;
-    $email_after_classify_as_paid_partially = isset($_POST['email_after_classify_as_paid_partially']) ? 1 : 0;
-
-    // Save the values to the database
+	// Get the values of the checkboxes from the form
+	$sms_after_create_invoice = isset($_POST['sms_after_create_invoice']) ? 1 : 0;
+	$email_after_create_invoice = isset($_POST['email_after_create_invoice']) ? 1 : 0;
+	$sms_after_delete_invoice = isset($_POST['sms_after_delete_invoice']) ? 1 : 0;
+	$email_after_delete_invoice = isset($_POST['email_after_delete_invoice']) ? 1 : 0;
+	$sms_afteradd_payment = isset($_POST['sms_afteradd_payment']) ? 1 : 0;
+	$email_afteradd_payment = isset($_POST['email_afteradd_payment']) ? 1 : 0;
+	$sms_after_delete_payment = isset($_POST['sms_after_delete_payment']) ? 1 : 0;
+	$email_after_delete_payment = isset($_POST['email_after_delete_payment']) ? 1 : 0;
+	$sms_after_cancel_payment = isset($_POST['sms_after_cancel_payment']) ? 1 : 0;
+	$email_after_cancel_payment = isset($_POST['email_after_cancel_payment']) ? 1 : 0;
+	$sms_after_reopen_invoice = isset($_POST['sms_after_reopen_invoice']) ? 1 : 0;
+	$email_after_reopen_invoice = isset($_POST['email_after_reopen_invoice']) ? 1 : 0;
+	$sms_after_classify_as_paid = isset($_POST['sms_after_classify_as_paid']) ? 1 : 0;
+	$email_after_classify_as_paid = isset($_POST['email_after_classify_as_paid']) ? 1 : 0;
+	$sms_after_classify_as_paid_partially = isset($_POST['sms_after_classify_as_paid_partially']) ? 1 : 0;
+	$email_after_classify_as_paid_partially = isset($_POST['email_after_classify_as_paid_partially']) ? 1 : 0;
+	$sms_after_validate_commande = isset($_POST['sms_after_validate_commande']) ? 1 : 0;
+	$email_after_validate_commande = isset($_POST['email_after_validate_commande']) ? 1 : 0;
+	$sms_after_sending_commande = isset($_POST['sms_after_sending_commande']) ? 1 : 0;
+	$email_after_sending_commande = isset($_POST['email_after_sending_commande']) ? 1 : 0;
+	// Save the values to the database
 	$sql = "UPDATE llx_auto_send SET 
         sms_after_create_invoice=$sms_after_create_invoice, 
         email_after_create_invoice=$email_after_create_invoice, 
@@ -134,18 +146,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         sms_after_classify_as_paid=$sms_after_classify_as_paid, 
         email_after_classify_as_paid=$email_after_classify_as_paid, 
         sms_after_classify_as_paid_partially=$sms_after_classify_as_paid_partially, 
-        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially
+        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially,
+        sms_after_classify_as_paid_partially=$sms_after_classify_as_paid_partially, 
+        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially,
+        sms_after_validate_commande=$sms_after_validate_commande,
+        email_after_validate_commande=$email_after_validate_commande,
+        sms_after_sending_commande=$sms_after_sending_commande,
+        email_after_sending_commande=$email_after_sending_commande
         WHERE id=1";
-		$result = $db->query($sql);
-if ($result) {
-	// refresh the page
-	header('Location: '.$_SERVER['REQUEST_URI']);
-    echo 'Data updated successfully';
-} else {
-    echo "Error: " . $db->error();
-}
-
-
+	$result = $db->query($sql);
+	if ($result) {
+		// refresh the page
+		header('Location: ' . $_SERVER['REQUEST_URI']);
+		echo 'Data updated successfully';
+	} else {
+		echo "Error: " . $db->error();
+	}
 }
 llxHeader("", $langs->trans("MailArea"));
 
@@ -245,6 +261,8 @@ print '
   <input type="checkbox" name="email_after_reopen_invoice" value="1" ' . ($data["email_after_reopen_invoice"] == "1" ? "checked" : "") . '> Send email after reopening invoice<br>
   <input type="checkbox" name="email_after_classify_as_paid" value="1" ' . ($data["email_after_classify_as_paid"] == "1" ? "checked" : "") . '> Send email after classifying as paid<br>
   <input type="checkbox" name="email_after_classify_as_paid_partially" value="1" ' . ($data["email_after_classify_as_paid_partially"] == "1" ? "checked" : "") . '> Send email after classifying as paid partially<br>
+  <input type="checkbox" name="email_after_validate_commande" value="1" ' . ($data["email_after_validate_commande"] == "1" ? "checked" : "") . '> Send email after validate commande<br>
+  <input type="checkbox" name="email_after_sending_commande" value="1" ' . ($data["email_after_sending_commande"] == "1" ? "checked" : "") . '> Send email after sending commande<br>
   <hr>
   <h2>SMS Settings</h2>
   <input type="checkbox" name="sms_after_create_invoice" value="1" ' . ($data["sms_after_create_invoice"] == "1" ? "checked" : "") . '> Send SMS after creating invoice<br>
@@ -255,7 +273,10 @@ print '
   <input type="checkbox" name="sms_after_reopen_invoice" value="1" ' . ($data["sms_after_reopen_invoice"] == "1" ? "checked" : "") . '> Send SMS after reopening invoice<br>
   <input type="checkbox" name="sms_after_classify_as_paid" value="1" ' . ($data["sms_after_classify_as_paid"] == "1" ? "checked" : "") . '> Send sms after classifying as paid<br>
   <input type="checkbox" name="sms_after_classify_as_paid_partially" value="1" ' . ($data["sms_after_classify_as_paid_partially"] == "1" ? "checked" : "") . '> Send sms after classifying as paid partially<br>
+  <input type="checkbox" name="sms_after_validate_commande" value="1" ' . ($data["sms_after_validate_commande"] == "1" ? "checked" : "") . '> Send sms after validate commande<br>
+  <input type="checkbox" name="sms_after_sending_commande" value="1" ' . ($data["sms_after_sending_commande"] == "1" ? "checked" : "") . '> Send sms after send commande<br>
   <br>
+  
   <input type="submit" name="submit" value="Save Settings">
   </form>
 ';
