@@ -60,20 +60,43 @@ class Facture extends CommonInvoice
 		// select from llx_facture those that are not fully paid and invoice data >= currect date
 		$sql = "SELECT * from llx_facture where fk_statut != 2 and date_lim_reglement >= CURRENT_DATE";
 		$resql = $this->db->query($sql);
-		// fetch the data 
-		$invoices = $this->db->fetch_object($resql);
-		// loop through the data
+		// loop through all the rows returned by the SQL query
+		while ($data = $this->db->fetch_object($resql)) {
+			// fetch the data 
+			// foreach invoice GET its ref
+			//  get invoice owner
+			$sql2 = "SELECT * from llx_societe where rowid = " . $data->fk_soc;
+			$resql2 = $this->db->query($sql2);
+			$owner = $this->db->fetch_object($resql2);
+			// get total amount of the invoice
+			$amount = $data->total_ttc;
+			// get paid amount of the invoice
+			$sql3 = "SELECT  sum(amount) FROM llx_paiement_facture WHERE fk_facture = $data->rowid";
+			$result3 = $this->db->query($sql3);
+			$data3 = $this->db->fetch_object($result3);
+			$paid_amount = 0;
+			$paid_amount = $data3->{'sum(amount)'};
+			if ($paid_amount == null) {
+				$paid_amount = 0;
+			}
+			$lefttobepaid = $amount - $paid_amount;
+			echo "<pre/>";
 
 
-		echo "<pre/>";
-		var_dump($invoices);
-		if (empty($invoices)) {
-			echo "no unpaid invoices";
+			$message = "Dear " . $owner->nom . ",\n\n" . "you have an unpaid invoice with ref " . $data->ref . " and due date " . $data->date_lim_reglement . ".\n\n" . "Please pay it as soon as possible.\n\n" . "Best regards,\n" . "M-innovation";
+			$email = "<div><p></p><p>Dear " . $owner->nom . ",</p><p>you have an unpaid invoice with ref " . $data->ref . " and due date " . $data->date_lim_reglement . ".</p><p>Please pay it as soon as possible.</p><p>Best regards,</p><p>M-innovation</p></div>";
+			// create table with total amount, paid amount and left to be paid
+			$email .= "<table border='1' style='border-collapse: collapse;'> <tr> <th>total amount</th> <th>paid amount</th> <th>left to be paid</th> </tr> <tr> <td>" . $amount . "</td> <td>" . $paid_amount . "</td> <td>" . $lefttobepaid . "</td> </tr> </table>";
+			echo $email;
+			$message .= "paid : " . $paid_amount . " total : " . $amount . " left to be paid : " . $lefttobepaid;
+			echo "****************message ";
+			echo $message;
+			// get invoice id
+			$invoice_id = $data->rowid;
 		}
 		exit;
-
-		echo "check_paid";
 	}
+
 
 
 	/**
