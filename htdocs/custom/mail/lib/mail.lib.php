@@ -4,7 +4,7 @@ use phpDocumentor\Reflection\DocBlock\Description;
 use Twilio\Rest\Client;
 
 require_once(__DIR__ . '/../../../includes/twilio/sdk/src/Twilio/autoload.php');
-function get_left_to_pay($conf, $invoice_id)
+function payed_amount($conf, $invoice_id)
 {
 	$database_name = $conf->db->name;
 	$database_user_name = $conf->db->user;
@@ -12,21 +12,18 @@ function get_left_to_pay($conf, $invoice_id)
 	$database_host = $conf->db->host;
 	$db = new mysqli($database_host, $database_user_name, $database_password, $database_name);
 	if ($db->connect_error) {
-		echo "not connected";
 		die("Connection failed: " . $db->connect_error);
 	} else {
-		echo "connected";
 	}
 	// Execute the SQL statement and fetch the data
-	$sql = "SELECT count(*) FROM llx_paiement_facture WHERE fk_facture = $invoice_id";
-	echo $invoice_id;
+	$sql = "SELECT  sum(amount) FROM llx_paiement_facture WHERE fk_facture = $invoice_id";
 	$result = $db->query($sql);
-	echo "result of query : " . $result;
-	var_dump($result);
+	$data = $result->fetch_assoc();
+	$paid = $data['sum(amount)'];
 
-	exit;
-	return $result;
+	return $paid;
 }
+
 function email_template($invoice, $currency, $total_paid_amount, $remaning_amount, $title, $description, $products_infos, $payment_infos)
 {
 	echo $total_paid_amount;
@@ -142,64 +139,25 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
-		// get factures all paiements
-		$factures = $object->getListOfPayments();
-		// get montatnt of the deleted paiement
-		$deleted_montant = $paiement->montant;
-		// get id of the deleted paiement
-		$deleted_id = $paiement->ref;
-		// get facture id
-		$invoice_id = $paiement->facid;
-		echo "*************************";
-		echo "<pre>	";
-		echo "*************INVOICE ID";
-		echo $object->ref;
-		echo get_left_to_pay($conf, $object->fk_facture);
-		exit;
-		// get unpaid amount
-		$unpaid_amount = $object->total_ttc - $paiement->montant;
-		echo "<pre>	";
-		echo "\n*************total paid\n";
-		echo get_left_to_pay($conf, $invoice_id);
-		echo "\n*************unpaid_amount\n";
-		echo $unpaid_amount;
-		echo "\n*************total\n";
-		echo $object->total_ttc;
-		echo "\n*************DELETED AMOUNT\n";
-		echo $deleted_montant;
-		echo "\n*************PAIMENT\n";
-		var_dump($paiement);
-		echo "\n*************INVOICE\n";
-		var_dump($object->ref);
-		// deleted 12
-		// ALREADY PAID 2.5
-		// LEFT 897.5
-		exit;
 
-		// get original amount
+		$deleted_montant = $paiement->montant;
+		$deleted_id = $paiement->ref;
+
+
+		$total_paid = payed_amount($conf, $object->id);
+		$left_to_pay = $object->total_ttc - $total_paid;
+		$deleted_montant = $paiement->montant;
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
 
-		// get left to pay
-		$left_to_pay = $original_amount - $total_paid;
-		$left_to_pay = number_format($left_to_pay, 2, '.', '');
-
-		// get deleted paiement full date with the time
 		$deleted_date = $paiement->datepaye;
-		// format date
 		$deleted_date = date('d/m/Y', $deleted_date);
-		// check the status of the invoice if its started or not
-
-
-		// get the currency of the invoice
 		$currency = $object->multicurrency_code;
 
 		$message = "dear customer \n the payment with the ref (" . $deleted_id . ") was deleted from the invoice with the ref ( " . $object->ref . ") \n the amount of the deleted payment is :" . $deleted_montant . $currency . " \n the current total paid is :" . $total_paid . $currency . " \n the original amount is :" . $original_amount . $currency . " \n the left to pay is :" . $left_to_pay . $currency . " \n the deleted payment date is :" . $deleted_date . "";
 		if ($left_to_pay == $original_amount) {
-			echo 'the invoice is not started';
 			$message .= " \n the invoice status is : not paid";
 		} else {
-			echo 'the invoice is started';
 			$message .= " \n the invoice is status is : started";
 		}
 
@@ -665,10 +623,12 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 {
 
+
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
-		$invoice_paid = get_left_to_pay($conf, $object->fk_facture);
+		var_dump($object->id);
+		$invoice_paid = payed_amount($conf, $object->id);
 		// get factures all paiements
 		$factures = $object->getListOfPayments();
 		// get montatnt of the deleted paiement
