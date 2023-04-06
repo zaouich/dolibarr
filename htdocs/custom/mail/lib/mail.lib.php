@@ -20,14 +20,12 @@ function payed_amount($conf, $invoice_id)
 	$result = $db->query($sql);
 	$data = $result->fetch_assoc();
 	$paid = $data['sum(amount)'];
-
 	return $paid;
 }
 
 function email_template($invoice, $currency, $total_paid_amount, $remaning_amount, $title, $description, $products_infos, $payment_infos)
 {
-	echo $total_paid_amount;
-	exit;
+
 	// 1) create the amount table
 	$amount = "";
 	if ($payment_infos) {
@@ -193,7 +191,7 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 			$okay_sms = check($conf, "sms_after_delete_payment");
 			if ($okay_mail) {
 				$description = "dear customer \n the payment with the ref (" . $deleted_id . ") was deleted from the invoice with the ref ( " . $object->ref . ")";
-				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, "payment deleted !", $description, false, true);
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "payment deleted !", $description, false, true);
 				$message_ .= "<table>
 				<tr>
 					<th>deleted payment</th>
@@ -266,7 +264,7 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 
 
 					$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is deleted \n";
-					$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice deleted !', $description, false, false);
+					$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice deleted !', $description, false, false);
 					echo $message_;
 					//$mailfile = new CMailFile($subject, $sendto, $from, $message);
 					//$result = $mailfile->sendfile();
@@ -311,7 +309,7 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 			$okay_sms = check($conf, "sms_after_cancel_payment");
 			if ($okay_mail) {
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is canceled \n";
-				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice canceled !', $description, false, false);
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice canceled !', $description, false, false);
 				echo $message_;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message);
 				//$result = $mailfile->sendfile();
@@ -348,16 +346,17 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 		$deleted_id = $paiement->ref;
 
 		// get total paid
-		$total_paid = $object->getSommePaiement();
-		if (!$total_paid) {
-			$total_paid = 0;
-		}
+
 		// get original amount
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
 
 		// get left to pay
-		$left_to_pay = $original_amount - $total_paid;
+		$total_paid = payed_amount($conf, $object->id);
+		if (!$total_paid) {
+			$total_paid = 0;
+		}
+		$left_to_pay = $object->total_ttc - $total_paid;
 		$left_to_pay = number_format($left_to_pay, 2, '.', '');
 
 		// get deleted paiement full date with the time
@@ -412,7 +411,7 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 			if ($okay_mail) {
 				// 
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is reopened \n";
-				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice reopened !', $description, false, true);
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice reopened !', $description, false, true);
 				echo $message_;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
 				//$result = $mailfile->sendfile();
@@ -454,16 +453,17 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 		$deleted_id = $paiement->ref;
 
 		// get total paid
-		$total_paid = $object->getSommePaiement();
-		if (!$total_paid) {
-			$total_paid = 0;
-		}
+
 		// get original amount
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
 
 		// get left to pay
-		$left_to_pay = $original_amount - $total_paid;
+		$total_paid = payed_amount($conf, $object->id);
+		if (!$total_paid) {
+			$total_paid = 0;
+		}
+		$left_to_pay = $object->total_ttc - $total_paid;
 		$left_to_pay = number_format($left_to_pay, 2, '.', '');
 
 		// get deleted paiement full date with the time
@@ -507,7 +507,7 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 			if ($okay_mail) {
 
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is paid \n";
-				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice paid !', $description, false, true);
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice paid !', $description, false, true);
 				echo $message_;
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -540,15 +540,16 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 		// get id of the deleted paiement
 
 		// get total paid
-		$total_paid = $object->getSommePaiement();
-		if (!$total_paid) {
-			$total_paid = 0;
-		}
+
 		// get original amount
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
 		// get left to pay
-		$left_to_pay = $original_amount - $total_paid;
+		$total_paid = payed_amount($conf, $object->id);
+		if (!$total_paid) {
+			$total_paid = 0;
+		}
+		$left_to_pay = $object->total_ttc - $total_paid;
 		$left_to_pay = number_format($left_to_pay, 2, '.', '');
 		// get deleted paiement full date with the time
 		// format date
@@ -594,7 +595,7 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 			$okay_sms = check($conf, "sms_after_create_invoice");
 			if ($okay_mail) {
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is created \n";
-				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, 'invoice created !', $description, true, true);
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice created !', $description, true, true);
 				echo $message_;
 				exit;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
@@ -635,16 +636,16 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 		// get id of the deleted paiement
 
 		// get total paid
-		$total_paid = $object->getSommePaiement();
-		if (!$total_paid) {
-			$total_paid = 0;
-		}
 		// get original amount
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
 
 		// get left to pay
-		$left_to_pay = $original_amount - $total_paid;
+		$total_paid = payed_amount($conf, $object->id);
+		if (!$total_paid) {
+			$total_paid = 0;
+		}
+		$left_to_pay = $object->total_ttc - $total_paid;
 		$left_to_pay = number_format($left_to_pay, 2, '.', '');
 
 		// get payment ref
@@ -699,7 +700,7 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 				$payment_ref = $payment->ref;
 
 				$description = "dear customer \n the payment with the ref (" . $payment_ref . ") was added to the invoice with the ref ( " . $object->ref . ")";
-				$message_ = email_template($object, $currency, $original_amount, $left_to_pay, "payment created !", $description, false, true);
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "payment created !", $description, false, true);
 
 				echo $message_;
 				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
@@ -739,15 +740,16 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 		// get id of the deleted paiement
 
 		// get total paid
-		$total_paid = $object->getSommePaiement();
-		if (!$total_paid) {
-			$total_paid = 0;
-		}
+
 		// get original amount
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
 		// get left to pay
-		$left_to_pay = $original_amount - $total_paid;
+		$total_paid = payed_amount($conf, $object->id);
+		if (!$total_paid) {
+			$total_paid = 0;
+		}
+		$left_to_pay = $object->total_ttc - $total_paid;
 		$left_to_pay = number_format($left_to_pay, 2, '.', '');
 		// get deleted paiement full date with the time
 		// format date
