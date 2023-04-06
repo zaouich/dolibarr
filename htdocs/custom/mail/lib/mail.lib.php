@@ -59,7 +59,7 @@ function email_template($invoice, $currency, $total_paid_amount, $remaning_amoun
 	$products = "";
 	if ($products_infos) {
 		$products = "
-		<h1>the invoice infos : </h1>
+		<h1>the products infos : </h1>
 		<table  border='1' style='border-collapse: collapse;> '
 		<tr>
 		<th>Product</th>
@@ -693,8 +693,8 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 		// Send email
 		if (!empty($sendto) && !empty($from)) {
 			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-			$okay_mail = check($conf, "email_after_delete_payment");
-			$okay_sms = check($conf, "sms_after_delete_payment");
+			$okay_mail = check($conf, "email_after_create_payment");
+			$okay_sms = check($conf, "sms_after_create_payment");
 			if ($okay_mail) {
 				// get payment ref
 				$payment_ref = $payment->ref;
@@ -732,18 +732,19 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 {
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
-		// select * from llx_auto_send
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
+		var_dump($object->id);
+		$invoice_paid = payed_amount($conf, $object->id);
 		// get factures all paiements
 		// get montatnt of the deleted paiement
 		// get id of the deleted paiement
 
 		// get total paid
-
 		// get original amount
 		$original_amount = $object->total_ttc;
 		$original_amount = number_format($original_amount, 2, '.', '');
+
 		// get left to pay
 		$total_paid = payed_amount($conf, $object->id);
 		if (!$total_paid) {
@@ -751,12 +752,182 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 		}
 		$left_to_pay = $object->total_ttc - $total_paid;
 		$left_to_pay = number_format($left_to_pay, 2, '.', '');
-		// get deleted paiement full date with the time
+
+		// get payment ref
+		$payment_ref = $object->ref;
+
+
+
+		// get the currency of the invoice
+		$currency = $object->multicurrency_code;
+
+		$message = "dear customer \n the commande with the ref (" . $object->ref . ") was created "  . " \n the current total paid is :" . $total_paid . $currency . " \n the original amount is :" . $original_amount . $currency . " \n the left to pay is :" . $left_to_pay . $currency . " \n thank you";
+		if ($left_to_pay == $original_amount) {
+			echo 'the invoice is not started';
+			$message .= " \n the invoice status is : not paid";
+		} else {
+			echo 'the invoice is started';
+			$message .= " \n the invoice is status is : started";
+		}
+
+
 		// format date
-		// check the status of the invoice if its started or not
-		$okay_mail = check($conf, "email_after_create_commande");
-		$okay_sms = check($conf, "sms_after_create_commande");
-		if ($okay_mail) {
+
+		// send email
+		$sendto = $object->thirdparty->email;
+		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+
+		$filename_list = array();
+		$mimefilename_list = array();
+		$mimetype_list = array();
+
+		// Generate PDF
+		$resultPDF = $object->generateDocument($object->modelpdf, $langs);
+		if ($resultPDF <= 0) {
+			setEventMessages($object->error, $object->errors, 'errors');
+		} else {
+			$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/') . '[^\-]+');
+			$file = $fileparams['fullname'];
+
+			$filename_list[] = $file;
+			$mimefilename_list[] = $object->ref . '.pdf';
+			$mimetype_list[] = 'application/pdf';
+		}
+
+		// Send email
+		if (!empty($sendto) && !empty($from)) {
+			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+			$okay_mail = check($conf, "email_after_validate_commande");
+			$okay_sms = check($conf, "sms_after_validate_commande");
+			if ($okay_mail) {
+				// get payment ref
+				$payment_ref = $payment->ref;
+
+				$description = $message = "dear customer \n the commande with the ref (" . $object->ref . ") was created ";
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "commande created !", $description, true, false);
+
+				echo $message_;
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
+
+				if ($result) {
+					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+				} else {
+					setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
+				}
+			}
+			if ($okay_sms) {
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
+			} else {
+				return null;
+			}
+		}
+	} else {
+		return null;
+	}
+}
+function send_email_after_send_commande($object, $conf, $langs, $mysoc)
+{
+	if ($conf->global->MAIN_MODULE_MAIL == 1) {
+		$result = $object->fetch($object->id); // Reload to get new records
+		$result = $object->fetch_thirdparty();
+		var_dump($object->id);
+		$invoice_paid = payed_amount($conf, $object->id);
+		// get factures all paiements
+		// get montatnt of the deleted paiement
+		// get id of the deleted paiement
+
+		// get total paid
+		// get original amount
+		$original_amount = $object->total_ttc;
+		$original_amount = number_format($original_amount, 2, '.', '');
+
+		// get left to pay
+		$total_paid = payed_amount($conf, $object->id);
+		if (!$total_paid) {
+			$total_paid = 0;
+		}
+		$left_to_pay = $object->total_ttc - $total_paid;
+		$left_to_pay = number_format($left_to_pay, 2, '.', '');
+		$traking_number = $object->tracking_number;
+		// get payment ref
+		$payment_ref = $object->ref;
+
+
+
+		// get the currency of the invoice
+		$currency = $object->multicurrency_code;
+
+		$message = "dear customer \n the commande with the ref (" . $object->commande->ref . ") was send "  . " \n the current total paid is :" . $total_paid . $currency . " \n the original amount is :" . $original_amount . $currency . " \n the left to pay is :" . $left_to_pay . $currency . " \n thank you";
+		if ($left_to_pay == $original_amount) {
+			echo 'the invoice is not started';
+			$message .= " \n the invoice status is : not paid";
+		} else {
+			echo 'the invoice is started';
+			$message .= " \n the invoice is status is : started";
+		}
+
+
+		// format date
+
+		// send email
+		$sendto = $object->thirdparty->email;
+		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
+		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+
+		$filename_list = array();
+		$mimefilename_list = array();
+		$mimetype_list = array();
+
+		// Generate PDF
+		$resultPDF = $object->generateDocument($object->modelpdf, $langs);
+		if ($resultPDF <= 0) {
+			setEventMessages($object->error, $object->errors, 'errors');
+		} else {
+			$fileparams = dol_most_recent_file($conf->facture->dir_output . '/' . $object->ref, preg_quote($object->ref, '/') . '[^\-]+');
+			$file = $fileparams['fullname'];
+
+			$filename_list[] = $file;
+			$mimefilename_list[] = $object->ref . '.pdf';
+			$mimetype_list[] = 'application/pdf';
+		}
+
+		// Send email
+		if (!empty($sendto) && !empty($from)) {
+			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+			$okay_mail = check($conf, "email_after_sending_commande");
+			$okay_sms = check($conf, "sms_after_sending_commande");
+			if ($okay_mail) {
+				// get payment ref
+				$payment_ref = $payment->ref;
+
+				$description = $message = "dear customer \n the commande with the ref (" . $object->commande->ref . ") was sent ";
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "commande " . $traking_number . " sent !", $description, false, false);
+
+				echo $message_;
+				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				//$result = $mailfile->sendfile();
+
+				if ($result) {
+					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
+				} else {
+					setEventMessages('ErrorFailedToSendMail, From: ' . $from . ', To: ' . $sendto, null, 'errors', 0, 'direct');
+				}
+			}
+			if ($okay_sms) {
+				//send_sms("+212637342771", $message);
+				echo "***********************************";
+				echo "sms sent";
+				echo $message;
+				exit;
+			} else {
+				return null;
+			}
 		}
 	} else {
 		return null;
