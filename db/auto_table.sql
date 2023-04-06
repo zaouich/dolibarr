@@ -1,4 +1,4 @@
-use dolibarr
+use dolibarr_
 drop table llx_auto_send
 CREATE TABLE llx_auto_send (
   id INT(11) NOT NULL AUTO_INCREMENT,
@@ -18,6 +18,9 @@ CREATE TABLE llx_auto_send (
   email_after_classify_as_paid TINYINT(1) NOT NULL DEFAULT 0,
   sms_after_classify_as_paid_partially TINYINT(1) NOT NULL DEFAULT 0,
    email_after_classify_as_paid_partially TINYINT(1) NOT NULL DEFAULT 0,
+   sms_after_validate_commande TINYINT(1) NOT NULL DEFAULT 0,
+   email_after_validate_commande TINYINT(1) NOT NULL DEFAULT 0,
+   sms_after_sending_commande TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
 
