@@ -1,10 +1,12 @@
 <?php
-/* Copyright (C) 2004-2017 Laurent Destailleur  <eldy@users.sourceforge.net>
- * Copyright (C) 2023 SuperAdmin
+/* Copyright (C) 2001-2005 Rodolphe Quiedeville <rodolphe@quiedeville.org>
+ * Copyright (C) 2004-2015 Laurent Destailleur  <eldy@users.sourceforge.net>
+ * Copyright (C) 2005-2012 Regis Houssin        <regis.houssin@inodbox.com>
+ * Copyright (C) 2015      Jean-François Ferry	<jfefe@aternatik.fr>
  *
- * This program is free software: you can redistribute it and/or modify
+ * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -13,166 +15,63 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * \file    mail/admin/setup.php
- * \ingroup mail
- * \brief   Mail setup page.
+ *	\file       mail/mailindex.php
+ *	\ingroup    mail
+ *	\brief      Home page of mail top menu
  */
+
+// Execute a query
 
 // Load Dolibarr environment
 $res = 0;
 // Try main.inc.php into web root known defined into CONTEXT_DOCUMENT_ROOT (not always defined)
-if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
+if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"] . "/main.inc.php";
 // Try main.inc.php into web root detected using web root calculated from SCRIPT_FILENAME
-$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME']; $tmp2 = realpath(__FILE__); $i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
-while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) { $i--; $j--; }
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) $res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) $res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
+$tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+$tmp2 = realpath(__FILE__);
+$i = strlen($tmp) - 1;
+$j = strlen($tmp2) - 1;
+while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) {
+	$i--;
+	$j--;
+}
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1)) . "/main.inc.php")) $res = @include substr($tmp, 0, ($i + 1)) . "/main.inc.php";
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php")) $res = @include dirname(substr($tmp, 0, ($i + 1))) . "/main.inc.php";
 // Try main.inc.php using relative path
+if (!$res && file_exists("../main.inc.php")) $res = @include "../main.inc.php";
 if (!$res && file_exists("../../main.inc.php")) $res = @include "../../main.inc.php";
 if (!$res && file_exists("../../../main.inc.php")) $res = @include "../../../main.inc.php";
 if (!$res) die("Include of main fails");
 
-global $langs, $user;
+require_once DOL_DOCUMENT_ROOT . '/core/class/html.formfile.class.php';
 
-// Libraries
-require_once DOL_DOCUMENT_ROOT."/core/lib/admin.lib.php";
-require_once '../lib/mail.lib.php';
-//require_once "../class/myclass.class.php";
+// Load translation files required by the page
+$langs->loadLangs(array("mail@mail"));
 
-// Translations
-$langs->loadLangs(array("admin", "mail@mail"));
-
-// Access control
-if (!$user->admin) accessforbidden();
-
-// Parameters
 $action = GETPOST('action', 'alpha');
-$backtopage = GETPOST('backtopage', 'alpha');
 
-$value = GETPOST('value', 'alpha');
 
-$arrayofparameters = array(
-	'MAIL_MYPARAM1'=>array('css'=>'minwidth200', 'enabled'=>1),
-	'MAIL_MYPARAM2'=>array('css'=>'minwidth500', 'enabled'=>1)
-);
+// Security check
+//if (! $user->rights->mail->myobject->read) accessforbidden();
+$socid = GETPOST('socid', 'int');
+if (isset($user->socid) && $user->socid > 0) {
+	$action = '';
+	$socid = $user->socid;
+}
 
-$error = 0;
-$setupnotempty = 0;
+$max = 5;
+$now = dol_now();
 
 
 /*
  * Actions
  */
 
-if ((float) DOL_VERSION >= 6)
-{
-	include DOL_DOCUMENT_ROOT.'/core/actions_setmoduleoptions.inc.php';
-}
-
-if ($action == 'updateMask')
-{
-	$maskconstorder = GETPOST('maskconstorder', 'alpha');
-	$maskorder = GETPOST('maskorder', 'alpha');
-
-	if ($maskconstorder) $res = dolibarr_set_const($db, $maskconstorder, $maskorder, 'chaine', 0, '', $conf->entity);
-
-	if (!$res > 0) $error++;
-
-	if (!$error)
-	{
-		setEventMessages($langs->trans("SetupSaved"), null, 'mesgs');
-	} else {
-		setEventMessages($langs->trans("Error"), null, 'errors');
-	}
-} elseif ($action == 'specimen')
-{
-	$modele = GETPOST('module', 'alpha');
-	$tmpobjectkey = GETPOST('object');
-
-	$tmpobject = new $tmpobjectkey($db);
-	$tmpobject->initAsSpecimen();
-
-	// Search template files
-	$file = ''; $classname = ''; $filefound = 0;
-	$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
-	foreach ($dirmodels as $reldir)
-	{
-		$file = dol_buildpath($reldir."core/modules/mail/doc/pdf_".$modele."_".strtolower($tmpobjectkey).".modules.php", 0);
-		if (file_exists($file))
-		{
-			$filefound = 1;
-			$classname = "pdf_".$modele;
-			break;
-		}
-	}
-
-	if ($filefound)
-	{
-		require_once $file;
-
-		$module = new $classname($db);
-
-		if ($module->write_file($tmpobject, $langs) > 0)
-		{
-			header("Location: ".DOL_URL_ROOT."/document.php?modulepart=".strtolower($tmpobjectkey)."&file=SPECIMEN.pdf");
-			return;
-		} else {
-			setEventMessages($module->error, null, 'errors');
-			dol_syslog($module->error, LOG_ERR);
-		}
-	} else {
-		setEventMessages($langs->trans("ErrorModuleNotFound"), null, 'errors');
-		dol_syslog($langs->trans("ErrorModuleNotFound"), LOG_ERR);
-	}
-}
-
-// Activate a model
-elseif ($action == 'set')
-{
-	$ret = addDocumentModel($value, $type, $label, $scandir);
-} elseif ($action == 'del')
-{
-	$tmpobjectkey = GETPOST('object');
-
-	$ret = delDocumentModel($value, $type);
-	if ($ret > 0)
-	{
-		$constforval = strtoupper($tmpobjectkey).'_ADDON_PDF';
-		if ($conf->global->$constforval == "$value") dolibarr_del_const($db, $constforval, $conf->entity);
-	}
-}
-
-// Set default model
-elseif ($action == 'setdoc')
-{
-	$tmpobjectkey = GETPOST('object');
-	$constforval = strtoupper($tmpobjectkey).'_ADDON_PDF';
-	if (dolibarr_set_const($db, $constforval, $value, 'chaine', 0, '', $conf->entity))
-	{
-		// The constant that was read before the new set
-		// We therefore requires a variable to have a coherent view
-		$conf->global->$constforval = $value;
-	}
-
-	// On active le modele
-	$ret = delDocumentModel($value, $type);
-	if ($ret > 0)
-	{
-		$ret = addDocumentModel($value, $type, $label, $scandir);
-	}
-} elseif ($action == 'setmod')
-{
-	// TODO Check if numbering module chosen can be activated
-	// by calling method canBeActivated
-	$tmpobjectkey = GETPOST('object');
-	$constforval = 'MAIL_'.strtoupper($tmpobjectkey)."_ADDON";
-	dolibarr_set_const($db, $constforval, $value, 'chaine', 0, '', $conf->entity);
-}
-
+// None
 
 
 /*
@@ -180,347 +79,275 @@ elseif ($action == 'setdoc')
  */
 
 $form = new Form($db);
+$formfile = new FormFile($db);
 
-$dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
+$sql = "SELECT * FROM llx_auto_send WHERE id = 1";
+$result = $db->query($sql);
+$data = $result->fetch_assoc();
 
-$page_name = "MailSetup";
-llxHeader('', $langs->trans($page_name));
+// Check whether each checkbox should be checked
+$sms_after_create_invoice_checked = $data['sms_after_create_invoice'] ? 'checked' : '';
+$email_after_create_invoice_checked = $data['email_after_create_invoice'] ? 'checked' : '';
+$sms_after_delete_invoice_checked = $data['sms_after_delete_invoice'] ? 'checked' : '';
+$email_after_delete_invoice_checked = $data['email_after_delete_invoice'] ? 'checked' : '';
+$sms_afteradd_payment_checked = $data['sms_afteradd_payment'] ? 'checked' : '';
+$email_afteradd_payment_checked = $data['email_afteradd_payment'] ? 'checked' : '';
+$sms_after_delete_payment_checked = $data['sms_after_delete_payment'] ? 'checked' : '';
+$email_after_delete_payment_checked = $data['email_after_delete_payment'] ? 'checked' : '';
+$sms_after_cancel_payment_checked = $data['sms_after_cancel_payment'] ? 'checked' : '';
+$email_after_cancel_payment_checked = $data['email_after_cancel_payment'] ? 'checked' : '';
+$sms_after_reopen_invoice_checked = $data['sms_after_reopen_invoice'] ? 'checked' : '';
+$email_after_reopen_invoice_checked = $data['email_after_reopen_invoice'] ? 'checked' : '';
+$sms_after_classify_as_paid_checked = $data['sms_after_classify_as_paid'] ? 'checked' : '';
+$email_after_classify_as_paid_checked = $data['email_after_classify_as_paid'] ? 'checked' : '';
+$sms_after_classify_as_paid_partially_checked = $data['sms_after_classify_as_paid_partially'] ? 'checked' : '';
+$email_after_classify_as_paid_partially_checked = $data['email_after_classify_as_paid_partially'] ? 'checked' : '';
+$sms_after_validate_commande = $data['sms_after_validate_commande'] ? 'checked' : '';
+$email_after_validate_commande = $data['email_after_validate_commande'] ? 'checked' : '';
+$sms_after_sending_commande = $data['sms_after_sending_commande'] ? 'checked' : '';
+$email_after_sending_commande = $data['email_after_sending_commande'] ? 'checked' : '';
 
-// Subheader
-$linkback = '<a href="'.($backtopage ? $backtopage : DOL_URL_ROOT.'/admin/modules.php?restore_lastsearch_values=1').'">'.$langs->trans("BackToModuleList").'</a>';
-
-print load_fiche_titre($langs->trans($page_name), $linkback, 'object_mail@mail');
-
-// Configuration header
-$head = mailAdminPrepareHead();
-dol_fiche_head($head, 'settings', '', -1, "mail@mail");
-
-// Setup page goes here
-echo '<span class="opacitymedium">'.$langs->trans("MailSetupPage").'</span><br><br>';
-
-
-if ($action == 'edit')
-{
-	print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">';
-	print '<input type="hidden" name="token" value="'.newToken().'">';
-	print '<input type="hidden" name="action" value="update">';
-
-	print '<table class="noborder centpercent">';
-	print '<tr class="liste_titre"><td class="titlefield">'.$langs->trans("Parameter").'</td><td>'.$langs->trans("Value").'</td></tr>';
-
-	foreach ($arrayofparameters as $key => $val)
-	{
-		print '<tr class="oddeven"><td>';
-		$tooltiphelp = (($langs->trans($key.'Tooltip') != $key.'Tooltip') ? $langs->trans($key.'Tooltip') : '');
-		print $form->textwithpicto($langs->trans($key), $tooltiphelp);
-		print '</td><td><input name="'.$key.'"  class="flat '.(empty($val['css']) ? 'minwidth200' : $val['css']).'" value="'.$conf->global->$key.'"></td></tr>';
-	}
-	print '</table>';
-
-	print '<br><div class="center">';
-	print '<input class="button" type="submit" value="'.$langs->trans("Save").'">';
-	print '</div>';
-
-	print '</form>';
-	print '<br>';
-} else {
-	if (!empty($arrayofparameters))
-	{
-		print '<table class="noborder centpercent">';
-		print '<tr class="liste_titre"><td class="titlefield">'.$langs->trans("Parameter").'</td><td>'.$langs->trans("Value").'</td></tr>';
-
-		foreach ($arrayofparameters as $key => $val)
-		{
-			$setupnotempty++;
-
-			print '<tr class="oddeven"><td>';
-			$tooltiphelp = (($langs->trans($key.'Tooltip') != $key.'Tooltip') ? $langs->trans($key.'Tooltip') : '');
-			print $form->textwithpicto($langs->trans($key), $tooltiphelp);
-			print '</td><td>'.$conf->global->$key.'</td></tr>';
-		}
-
-		print '</table>';
-
-		print '<div class="tabsAction">';
-		print '<a class="butAction" href="'.$_SERVER["PHP_SELF"].'?action=edit">'.$langs->trans("Modify").'</a>';
-		print '</div>';
-	}
-	else
-	{
-		print '<br>'.$langs->trans("NothingToSetup");
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	// Get the values of the checkboxes from the form
+	$sms_after_create_invoice = isset($_POST['sms_after_create_invoice']) ? 1 : 0;
+	$email_after_create_invoice = isset($_POST['email_after_create_invoice']) ? 1 : 0;
+	$sms_after_delete_invoice = isset($_POST['sms_after_delete_invoice']) ? 1 : 0;
+	$email_after_delete_invoice = isset($_POST['email_after_delete_invoice']) ? 1 : 0;
+	$sms_afteradd_payment = isset($_POST['sms_afteradd_payment']) ? 1 : 0;
+	$email_afteradd_payment = isset($_POST['email_afteradd_payment']) ? 1 : 0;
+	$sms_after_delete_payment = isset($_POST['sms_after_delete_payment']) ? 1 : 0;
+	$email_after_delete_payment = isset($_POST['email_after_delete_payment']) ? 1 : 0;
+	$sms_after_cancel_payment = isset($_POST['sms_after_cancel_payment']) ? 1 : 0;
+	$email_after_cancel_payment = isset($_POST['email_after_cancel_payment']) ? 1 : 0;
+	$sms_after_reopen_invoice = isset($_POST['sms_after_reopen_invoice']) ? 1 : 0;
+	$email_after_reopen_invoice = isset($_POST['email_after_reopen_invoice']) ? 1 : 0;
+	$sms_after_classify_as_paid = isset($_POST['sms_after_classify_as_paid']) ? 1 : 0;
+	$email_after_classify_as_paid = isset($_POST['email_after_classify_as_paid']) ? 1 : 0;
+	$sms_after_classify_as_paid_partially = isset($_POST['sms_after_classify_as_paid_partially']) ? 1 : 0;
+	$email_after_classify_as_paid_partially = isset($_POST['email_after_classify_as_paid_partially']) ? 1 : 0;
+	$sms_after_validate_commande = isset($_POST['sms_after_validate_commande']) ? 1 : 0;
+	$email_after_validate_commande = isset($_POST['email_after_validate_commande']) ? 1 : 0;
+	$sms_after_sending_commande = isset($_POST['sms_after_sending_commande']) ? 1 : 0;
+	$email_after_sending_commande = isset($_POST['email_after_sending_commande']) ? 1 : 0;
+	// Save the values to the database
+	$sql = "UPDATE llx_auto_send SET 
+        sms_after_create_invoice=$sms_after_create_invoice, 
+        email_after_create_invoice=$email_after_create_invoice, 
+        sms_after_delete_invoice=$sms_after_delete_invoice, 
+        email_after_delete_invoice=$email_after_delete_invoice,
+        sms_afteradd_payment=$sms_afteradd_payment, 
+        email_afteradd_payment=$email_afteradd_payment, 
+        sms_after_delete_payment=$sms_after_delete_payment, 
+        email_after_delete_payment=$email_after_delete_payment,
+        sms_after_cancel_payment=$sms_after_cancel_payment, 
+        email_after_cancel_payment=$email_after_cancel_payment, 
+        sms_after_reopen_invoice=$sms_after_reopen_invoice, 
+        email_after_reopen_invoice=$email_after_reopen_invoice,
+        sms_after_classify_as_paid=$sms_after_classify_as_paid, 
+        email_after_classify_as_paid=$email_after_classify_as_paid, 
+        sms_after_classify_as_paid_partially=$sms_after_classify_as_paid_partially, 
+        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially,
+        sms_after_classify_as_paid_partially=$sms_after_classify_as_paid_partially, 
+        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially,
+        sms_after_validate_commande=$sms_after_validate_commande,
+        email_after_validate_commande=$email_after_validate_commande,
+        sms_after_sending_commande=$sms_after_sending_commande,
+        email_after_sending_commande=$email_after_sending_commande
+        WHERE id=1";
+	$result = $db->query($sql);
+	if ($result) {
+		// refresh the page
+		header('Location: ' . $_SERVER['REQUEST_URI']);
+		echo 'Data updated successfully';
+	} else {
+		echo "Error: " . $db->error();
 	}
 }
+llxHeader("", $langs->trans("MailArea"));
+
+print load_fiche_titre($langs->trans("MailArea"), '', 'mail.png@mail');
+
+print '<div class="fichecenter"><div class="fichethirdleft">';
 
 
-$moduledir = 'mail';
-$myTmpObjects = array();
-$myTmpObjects['MyObject']=array('includerefgeneration'=>0, 'includedocgeneration'=>0);
+/* BEGIN MODULEBUILDER DRAFT MYOBJECT
+// Draft MyObject
+if (! empty($conf->mail->enabled) && $user->rights->mail->read)
+{
+	$langs->load("orders");
 
+	$sql = "SELECT c.rowid, c.ref, c.ref_client, c.total_ht, c.tva as total_tva, c.total_ttc, s.rowid as socid, s.nom as name, s.client, s.canvas";
+	$sql.= ", s.code_client";
+	$sql.= " FROM ".MAIN_DB_PREFIX."commande as c";
+	$sql.= ", ".MAIN_DB_PREFIX."societe as s";
+	if (! $user->rights->societe->client->voir && ! $socid) $sql.= ", ".MAIN_DB_PREFIX."societe_commerciaux as sc";
+	$sql.= " WHERE c.fk_soc = s.rowid";
+	$sql.= " AND c.fk_statut = 0";
+	$sql.= " AND c.entity IN (".getEntity('commande').")";
+	if (! $user->rights->societe->client->voir && ! $socid) $sql.= " AND s.rowid = sc.fk_soc AND sc.fk_user = " .$user->id;
+	if ($socid)	$sql.= " AND c.fk_soc = ".$socid;
 
-foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
-	if ($myTmpObjectKey == 'MyObject') continue;
-	if ($myTmpObjectArray['includerefgeneration']) {
-		/*
-		 * Orders Numbering model
-		 */
-		$setupnotempty++;
-
-		print load_fiche_titre($langs->trans("NumberingModules", $myTmpObjectKey), '', '');
+	$resql = $db->query($sql);
+	if ($resql)
+	{
+		$total = 0;
+		$num = $db->num_rows($resql);
 
 		print '<table class="noborder centpercent">';
 		print '<tr class="liste_titre">';
-		print '<td>'.$langs->trans("Name").'</td>';
-		print '<td>'.$langs->trans("Description").'</td>';
-		print '<td class="nowrap">'.$langs->trans("Example").'</td>';
-		print '<td class="center" width="60">'.$langs->trans("Status").'</td>';
-		print '<td class="center" width="16">'.$langs->trans("ShortInfo").'</td>';
-		print '</tr>'."\n";
+		print '<th colspan="3">'.$langs->trans("DraftOrders").($num?'<span class="badge marginleftonlyshort">'.$num.'</span>':'').'</th></tr>';
 
-		clearstatcache();
-
-		foreach ($dirmodels as $reldir)
-		{
-			$dir = dol_buildpath($reldir."core/modules/".$moduledir);
-
-			if (is_dir($dir))
-			{
-				$handle = opendir($dir);
-				if (is_resource($handle))
-				{
-					while (($file = readdir($handle)) !== false)
-					{
-						if (strpos($file, 'mod_'.strtolower($myTmpObjectKey).'_') === 0 && substr($file, dol_strlen($file) - 3, 3) == 'php')
-						{
-							$file = substr($file, 0, dol_strlen($file) - 4);
-
-							require_once $dir.'/'.$file.'.php';
-
-							$module = new $file($db);
-
-							// Show modules according to features level
-							if ($module->version == 'development' && $conf->global->MAIN_FEATURES_LEVEL < 2) continue;
-							if ($module->version == 'experimental' && $conf->global->MAIN_FEATURES_LEVEL < 1) continue;
-
-							if ($module->isEnabled())
-							{
-								dol_include_once('/'.$moduledir.'/class/'.strtolower($myTmpObjectKey).'.class.php');
-
-								print '<tr class="oddeven"><td>'.$module->name."</td><td>\n";
-								print $module->info();
-								print '</td>';
-
-								// Show example of numbering model
-								print '<td class="nowrap">';
-								$tmp = $module->getExample();
-								if (preg_match('/^Error/', $tmp)) print '<div class="error">'.$langs->trans($tmp).'</div>';
-								elseif ($tmp == 'NotConfigured') print $langs->trans($tmp);
-								else print $tmp;
-								print '</td>'."\n";
-
-								print '<td class="center">';
-								$constforvar = 'MAIL_'.strtoupper($myTmpObjectKey).'_ADDON';
-								if ($conf->global->$constforvar == $file)
-								{
-									print img_picto($langs->trans("Activated"), 'switch_on');
-								} else {
-									print '<a href="'.$_SERVER["PHP_SELF"].'?action=setmod&object='.strtolower($myTmpObjectKey).'&value='.$file.'">';
-									print img_picto($langs->trans("Disabled"), 'switch_off');
-									print '</a>';
-								}
-								print '</td>';
-
-								$mytmpinstance = new $myTmpObjectKey($db);
-								$mytmpinstance->initAsSpecimen();
-
-								// Info
-								$htmltooltip = '';
-								$htmltooltip .= ''.$langs->trans("Version").': <b>'.$module->getVersion().'</b><br>';
-
-								$nextval = $module->getNextValue($mytmpinstance);
-								if ("$nextval" != $langs->trans("NotAvailable")) {  // Keep " on nextval
-									$htmltooltip .= ''.$langs->trans("NextValue").': ';
-									if ($nextval) {
-										if (preg_match('/^Error/', $nextval) || $nextval == 'NotConfigured')
-											$nextval = $langs->trans($nextval);
-											$htmltooltip .= $nextval.'<br>';
-									} else {
-										$htmltooltip .= $langs->trans($module->error).'<br>';
-									}
-								}
-
-								print '<td class="center">';
-								print $form->textwithpicto('', $htmltooltip, 1, 0);
-								print '</td>';
-
-								print "</tr>\n";
-							}
-						}
-					}
-					closedir($handle);
-				}
-			}
-		}
-		print "</table><br>\n";
-	}
-
-	if ($myTmpObjectArray['includedocgeneration']) {
-		/*
-		 * Document templates generators
-		 */
-		$setupnotempty++;
-		$type = strtolower($myTmpObjectKey);
-
-		print load_fiche_titre($langs->trans("DocumentModules", $myTmpObjectKey), '', '');
-
-		// Load array def with activated templates
-		$def = array();
-		$sql = "SELECT nom";
-		$sql .= " FROM ".MAIN_DB_PREFIX."document_model";
-		$sql .= " WHERE type = '".$type."'";
-		$sql .= " AND entity = ".$conf->entity;
-		$resql = $db->query($sql);
-		if ($resql)
+		$var = true;
+		if ($num > 0)
 		{
 			$i = 0;
-			$num_rows = $db->num_rows($resql);
-			while ($i < $num_rows)
+			while ($i < $num)
 			{
-				$array = $db->fetch_array($resql);
-				array_push($def, $array[0]);
+
+				$obj = $db->fetch_object($resql);
+				print '<tr class="oddeven"><td class="nowrap">';
+				$orderstatic->id=$obj->rowid;
+				$orderstatic->ref=$obj->ref;
+				$orderstatic->ref_client=$obj->ref_client;
+				$orderstatic->total_ht = $obj->total_ht;
+				$orderstatic->total_tva = $obj->total_tva;
+				$orderstatic->total_ttc = $obj->total_ttc;
+				print $orderstatic->getNomUrl(1);
+				print '</td>';
+				print '<td class="nowrap">';
+				$companystatic->id=$obj->socid;
+				$companystatic->name=$obj->name;
+				$companystatic->client=$obj->client;
+				$companystatic->code_client = $obj->code_client;
+				$companystatic->code_fournisseur = $obj->code_fournisseur;
+				$companystatic->canvas=$obj->canvas;
+				print $companystatic->getNomUrl(1,'customer',16);
+				print '</td>';
+				print '<td class="right" class="nowrap">'.price($obj->total_ttc).'</td></tr>';
 				$i++;
+				$total += $obj->total_ttc;
 			}
-		} else {
-			dol_print_error($db);
-		}
-
-		print "<table class=\"noborder\" width=\"100%\">\n";
-		print "<tr class=\"liste_titre\">\n";
-		print '<td>'.$langs->trans("Name").'</td>';
-		print '<td>'.$langs->trans("Description").'</td>';
-		print '<td class="center" width="60">'.$langs->trans("Status")."</td>\n";
-		print '<td class="center" width="60">'.$langs->trans("Default")."</td>\n";
-		print '<td class="center" width="38">'.$langs->trans("ShortInfo").'</td>';
-		print '<td class="center" width="38">'.$langs->trans("Preview").'</td>';
-		print "</tr>\n";
-
-		clearstatcache();
-
-		foreach ($dirmodels as $reldir)
-		{
-			foreach (array('', '/doc') as $valdir)
+			if ($total>0)
 			{
-				$realpath = $reldir."core/modules/".$moduledir.$valdir;
-				$dir = dol_buildpath($realpath);
 
-				if (is_dir($dir))
-				{
-					$handle = opendir($dir);
-					if (is_resource($handle))
-					{
-						while (($file = readdir($handle)) !== false)
-						{
-							$filelist[] = $file;
-						}
-						closedir($handle);
-						arsort($filelist);
-
-						foreach ($filelist as $file)
-						{
-							if (preg_match('/\.modules\.php$/i', $file) && preg_match('/^(pdf_|doc_)/', $file))
-							{
-								if (file_exists($dir.'/'.$file))
-								{
-									$name = substr($file, 4, dol_strlen($file) - 16);
-									$classname = substr($file, 0, dol_strlen($file) - 12);
-
-									require_once $dir.'/'.$file;
-									$module = new $classname($db);
-
-									$modulequalified = 1;
-									if ($module->version == 'development' && $conf->global->MAIN_FEATURES_LEVEL < 2) $modulequalified = 0;
-									if ($module->version == 'experimental' && $conf->global->MAIN_FEATURES_LEVEL < 1) $modulequalified = 0;
-
-									if ($modulequalified)
-									{
-										print '<tr class="oddeven"><td width="100">';
-										print (empty($module->name) ? $name : $module->name);
-										print "</td><td>\n";
-										if (method_exists($module, 'info')) print $module->info($langs);
-										else print $module->description;
-										print '</td>';
-
-										// Active
-										if (in_array($name, $def))
-										{
-											print '<td class="center">'."\n";
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=del&value='.$name.'">';
-											print img_picto($langs->trans("Enabled"), 'switch_on');
-											print '</a>';
-											print '</td>';
-										} else {
-											print '<td class="center">'."\n";
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=set&value='.$name.'&amp;scan_dir='.$module->scandir.'&amp;label='.urlencode($module->name).'">'.img_picto($langs->trans("Disabled"), 'switch_off').'</a>';
-											print "</td>";
-										}
-
-										// Default
-										print '<td class="center">';
-										$constforvar = 'MAIL_'.strtoupper($myTmpObjectKey).'_ADDON';
-										if ($conf->global->$constforvar == $name)
-										{
-											print img_picto($langs->trans("Default"), 'on');
-										} else {
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=setdoc&value='.$name.'&amp;scan_dir='.$module->scandir.'&amp;label='.urlencode($module->name).'" alt="'.$langs->trans("Default").'">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
-										}
-										print '</td>';
-
-										// Info
-										$htmltooltip = ''.$langs->trans("Name").': '.$module->name;
-										$htmltooltip .= '<br>'.$langs->trans("Type").': '.($module->type ? $module->type : $langs->trans("Unknown"));
-										if ($module->type == 'pdf')
-										{
-											$htmltooltip .= '<br>'.$langs->trans("Width").'/'.$langs->trans("Height").': '.$module->page_largeur.'/'.$module->page_hauteur;
-										}
-										$htmltooltip .= '<br>'.$langs->trans("Path").': '.preg_replace('/^\//', '', $realpath).'/'.$file;
-
-										$htmltooltip .= '<br><br><u>'.$langs->trans("FeaturesSupported").':</u>';
-										$htmltooltip .= '<br>'.$langs->trans("Logo").': '.yn($module->option_logo, 1, 1);
-										$htmltooltip .= '<br>'.$langs->trans("MultiLanguage").': '.yn($module->option_multilang, 1, 1);
-
-										print '<td class="center">';
-										print $form->textwithpicto('', $htmltooltip, 1, 0);
-										print '</td>';
-
-										// Preview
-										print '<td class="center">';
-										if ($module->type == 'pdf')
-										{
-											print '<a href="'.$_SERVER["PHP_SELF"].'?action=specimen&module='.$name.'&object='.$myTmpObjectKey.'">'.img_object($langs->trans("Preview"), 'generic').'</a>';
-										} else {
-											print img_object($langs->trans("PreviewNotAvailable"), 'generic');
-										}
-										print '</td>';
-
-										print "</tr>\n";
-									}
-								}
-							}
-						}
-					}
-				}
+				print '<tr class="liste_total"><td>'.$langs->trans("Total").'</td><td colspan="2" class="right">'.price($total)."</td></tr>";
 			}
 		}
+		else
+		{
 
-		print '</table>';
+			print '<tr class="oddeven"><td colspan="3" class="opacitymedium">'.$langs->trans("NoOrder").'</td></tr>';
+		}
+		print "</table><br>";
+
+		$db->free($resql);
+	}
+	else
+	{
+		dol_print_error($db);
 	}
 }
+END MODULEBUILDER DRAFT MYOBJECT */
 
-if (empty($setupnotempty)) {
-	print '<br>'.$langs->trans("NothingToSetup");
+
+print '
+<form action="setup.php" method="POST">
+  <h2>Email Settings</h2>
+  <input type="checkbox" name="email_after_create_invoice" value="1" ' . ($data["email_after_create_invoice"] == "1" ? "checked" : "") . '> Send email after creating invoice<br>
+  <input type="checkbox" name="email_after_delete_invoice" value="1" ' . ($data["email_after_delete_invoice"] == "1" ? "checked" : "") . '> Send email after deleting invoice<br>
+  <input type="checkbox" name="email_afteradd_payment" value="1" ' . ($data["email_afteradd_payment"] == "1" ? "checked" : "") . '> Send email after adding payment<br>
+  <input type="checkbox" name="email_after_delete_payment" value="1" ' . ($data["email_after_delete_payment"] == "1" ? "checked" : "") . '> Send email after deleting payment<br>
+  <input type="checkbox" name="email_after_cancel_payment" value="1" ' . ($data["email_after_cancel_payment"] == "1" ? "checked" : "") . '> Send email after cancelling payment<br>
+  <input type="checkbox" name="email_after_reopen_invoice" value="1" ' . ($data["email_after_reopen_invoice"] == "1" ? "checked" : "") . '> Send email after reopening invoice<br>
+  <input type="checkbox" name="email_after_classify_as_paid" value="1" ' . ($data["email_after_classify_as_paid"] == "1" ? "checked" : "") . '> Send email after classifying as paid<br>
+  <input type="checkbox" name="email_after_classify_as_paid_partially" value="1" ' . ($data["email_after_classify_as_paid_partially"] == "1" ? "checked" : "") . '> Send email after classifying as paid partially<br>
+  <input type="checkbox" name="email_after_validate_commande" value="1" ' . ($data["email_after_validate_commande"] == "1" ? "checked" : "") . '> Send email after validate commande<br>
+  <input type="checkbox" name="email_after_sending_commande" value="1" ' . ($data["email_after_sending_commande"] == "1" ? "checked" : "") . '> Send email after sending commande<br>
+  <hr>
+  <h2>SMS Settings</h2>
+  <input type="checkbox" name="sms_after_create_invoice" value="1" ' . ($data["sms_after_create_invoice"] == "1" ? "checked" : "") . '> Send SMS after creating invoice<br>
+  <input type="checkbox" name="sms_after_delete_invoice" value="1" ' . ($data["sms_after_delete_invoice"] == "1" ? "checked" : "") . '> Send SMS after deleting invoice<br>
+  <input type="checkbox" name="sms_afteradd_payment" value="1" ' . ($data["sms_afteradd_payment"] == "1" ? "checked" : "") . '> Send SMS after adding payment<br>
+  <input type="checkbox" name="sms_after_delete_payment" value="1" ' . ($data["sms_after_delete_payment"] == "1" ? "checked" : "") . '> Send SMS after deleting payment<br>
+  <input type="checkbox" name="sms_after_cancel_payment" value="1" ' . ($data["sms_after_cancel_payment"] == "1" ? "checked" : "") . '> Send SMS after cancelling payment<br>
+  <input type="checkbox" name="sms_after_reopen_invoice" value="1" ' . ($data["sms_after_reopen_invoice"] == "1" ? "checked" : "") . '> Send SMS after reopening invoice<br>
+  <input type="checkbox" name="sms_after_classify_as_paid" value="1" ' . ($data["sms_after_classify_as_paid"] == "1" ? "checked" : "") . '> Send sms after classifying as paid<br>
+  <input type="checkbox" name="sms_after_classify_as_paid_partially" value="1" ' . ($data["sms_after_classify_as_paid_partially"] == "1" ? "checked" : "") . '> Send sms after classifying as paid partially<br>
+  <input type="checkbox" name="sms_after_validate_commande" value="1" ' . ($data["sms_after_validate_commande"] == "1" ? "checked" : "") . '> Send sms after validate commande<br>
+  <input type="checkbox" name="sms_after_sending_commande" value="1" ' . ($data["sms_after_sending_commande"] == "1" ? "checked" : "") . '> Send sms after send commande<br>
+  <br>
+  
+  <input type="submit" name="submit" value="Save Settings">
+  </form>
+';
+
+
+/* BEGIN MODULEBUILDER LASTMODIFIED MYOBJECT
+// Last modified myobject
+if (! empty($conf->mail->enabled) && $user->rights->mail->read)
+{
+	$sql = "SELECT s.rowid, s.nom as name, s.client, s.datec, s.tms, s.canvas";
+	$sql.= ", s.code_client";
+	$sql.= " FROM ".MAIN_DB_PREFIX."societe as s";
+	if (! $user->rights->societe->client->voir && ! $socid) $sql.= ", ".MAIN_DB_PREFIX."societe_commerciaux as sc";
+	$sql.= " WHERE s.client IN (1, 2, 3)";
+	$sql.= " AND s.entity IN (".getEntity($companystatic->element).")";
+	if (! $user->rights->societe->client->voir && ! $socid) $sql.= " AND s.rowid = sc.fk_soc AND sc.fk_user = " .$user->id;
+	if ($socid)	$sql.= " AND s.rowid = $socid";
+	$sql .= " ORDER BY s.tms DESC";
+	$sql .= $db->plimit($max, 0);
+
+	$resql = $db->query($sql);
+	if ($resql)
+	{
+		$num = $db->num_rows($resql);
+		$i = 0;
+
+		print '<table class="noborder centpercent">';
+		print '<tr class="liste_titre">';
+		print '<th colspan="2">';
+		if (empty($conf->global->SOCIETE_DISABLE_PROSPECTS) && empty($conf->global->SOCIETE_DISABLE_CUSTOMERS)) print $langs->trans("BoxTitleLastCustomersOrProspects",$max);
+		else if (! empty($conf->global->SOCIETE_DISABLE_CUSTOMERS)) print $langs->trans("BoxTitleLastModifiedProspects",$max);
+		else print $langs->trans("BoxTitleLastModifiedCustomers",$max);
+		print '</th>';
+		print '<th class="right">'.$langs->trans("DateModificationShort").'</th>';
+		print '</tr>';
+		if ($num)
+		{
+			while ($i < $num)
+			{
+				$objp = $db->fetch_object($resql);
+				$companystatic->id=$objp->rowid;
+				$companystatic->name=$objp->name;
+				$companystatic->client=$objp->client;
+				$companystatic->code_client = $objp->code_client;
+				$companystatic->code_fournisseur = $objp->code_fournisseur;
+				$companystatic->canvas=$objp->canvas;
+				print '<tr class="oddeven">';
+				print '<td class="nowrap">'.$companystatic->getNomUrl(1,'customer',48).'</td>';
+				print '<td class="right nowrap">';
+				print $companystatic->getLibCustProspStatut();
+				print "</td>";
+				print '<td class="right nowrap">'.dol_print_date($db->jdate($objp->tms),'day')."</td>";
+				print '</tr>';
+				$i++;
+
+
+			}
+
+			$db->free($resql);
+		}
+		else
+		{
+			print '<tr class="oddeven"><td colspan="3" class="opacitymedium">'.$langs->trans("None").'</td></tr>';
+		}
+		print "</table><br>";
+	}
 }
+*/
 
-// Page end
-dol_fiche_end();
+print '</div></div></div>';
 
+// End of page
 llxFooter();
 $db->close();
