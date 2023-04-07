@@ -78,91 +78,10 @@ $now = dol_now();
  * View
  */
 
-$form = new Form($db);
-$formfile = new FormFile($db);
 
-$sql = "SELECT * FROM llx_auto_send WHERE id = 1";
-$result = $db->query($sql);
-$data = $result->fetch_assoc();
 
-// Check whether each checkbox should be checked
-$sms_after_create_invoice_checked = $data['sms_after_create_invoice'] ? 'checked' : '';
-$email_after_create_invoice_checked = $data['email_after_create_invoice'] ? 'checked' : '';
-$sms_after_delete_invoice_checked = $data['sms_after_delete_invoice'] ? 'checked' : '';
-$email_after_delete_invoice_checked = $data['email_after_delete_invoice'] ? 'checked' : '';
-$sms_afteradd_payment_checked = $data['sms_afteradd_payment'] ? 'checked' : '';
-$email_afteradd_payment_checked = $data['email_afteradd_payment'] ? 'checked' : '';
-$sms_after_delete_payment_checked = $data['sms_after_delete_payment'] ? 'checked' : '';
-$email_after_delete_payment_checked = $data['email_after_delete_payment'] ? 'checked' : '';
-$sms_after_cancel_payment_checked = $data['sms_after_cancel_payment'] ? 'checked' : '';
-$email_after_cancel_payment_checked = $data['email_after_cancel_payment'] ? 'checked' : '';
-$sms_after_reopen_invoice_checked = $data['sms_after_reopen_invoice'] ? 'checked' : '';
-$email_after_reopen_invoice_checked = $data['email_after_reopen_invoice'] ? 'checked' : '';
-$sms_after_classify_as_paid_checked = $data['sms_after_classify_as_paid'] ? 'checked' : '';
-$email_after_classify_as_paid_checked = $data['email_after_classify_as_paid'] ? 'checked' : '';
-$sms_after_classify_as_paid_partially_checked = $data['sms_after_classify_as_paid_partially'] ? 'checked' : '';
-$email_after_classify_as_paid_partially_checked = $data['email_after_classify_as_paid_partially'] ? 'checked' : '';
-$sms_after_validate_commande = $data['sms_after_validate_commande'] ? 'checked' : '';
-$email_after_validate_commande = $data['email_after_validate_commande'] ? 'checked' : '';
-$sms_after_sending_commande = $data['sms_after_sending_commande'] ? 'checked' : '';
-$email_after_sending_commande = $data['email_after_sending_commande'] ? 'checked' : '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-	// Get the values of the checkboxes from the form
-	$sms_after_create_invoice = isset($_POST['sms_after_create_invoice']) ? 1 : 0;
-	$email_after_create_invoice = isset($_POST['email_after_create_invoice']) ? 1 : 0;
-	$sms_after_delete_invoice = isset($_POST['sms_after_delete_invoice']) ? 1 : 0;
-	$email_after_delete_invoice = isset($_POST['email_after_delete_invoice']) ? 1 : 0;
-	$sms_afteradd_payment = isset($_POST['sms_afteradd_payment']) ? 1 : 0;
-	$email_afteradd_payment = isset($_POST['email_afteradd_payment']) ? 1 : 0;
-	$sms_after_delete_payment = isset($_POST['sms_after_delete_payment']) ? 1 : 0;
-	$email_after_delete_payment = isset($_POST['email_after_delete_payment']) ? 1 : 0;
-	$sms_after_cancel_payment = isset($_POST['sms_after_cancel_payment']) ? 1 : 0;
-	$email_after_cancel_payment = isset($_POST['email_after_cancel_payment']) ? 1 : 0;
-	$sms_after_reopen_invoice = isset($_POST['sms_after_reopen_invoice']) ? 1 : 0;
-	$email_after_reopen_invoice = isset($_POST['email_after_reopen_invoice']) ? 1 : 0;
-	$sms_after_classify_as_paid = isset($_POST['sms_after_classify_as_paid']) ? 1 : 0;
-	$email_after_classify_as_paid = isset($_POST['email_after_classify_as_paid']) ? 1 : 0;
-	$sms_after_classify_as_paid_partially = isset($_POST['sms_after_classify_as_paid_partially']) ? 1 : 0;
-	$email_after_classify_as_paid_partially = isset($_POST['email_after_classify_as_paid_partially']) ? 1 : 0;
-	$sms_after_validate_commande = isset($_POST['sms_after_validate_commande']) ? 1 : 0;
-	$email_after_validate_commande = isset($_POST['email_after_validate_commande']) ? 1 : 0;
-	$sms_after_sending_commande = isset($_POST['sms_after_sending_commande']) ? 1 : 0;
-	$email_after_sending_commande = isset($_POST['email_after_sending_commande']) ? 1 : 0;
-	// Save the values to the database
-	$sql = "UPDATE llx_auto_send SET 
-        sms_after_create_invoice=$sms_after_create_invoice, 
-        email_after_create_invoice=$email_after_create_invoice, 
-        sms_after_delete_invoice=$sms_after_delete_invoice, 
-        email_after_delete_invoice=$email_after_delete_invoice,
-        sms_afteradd_payment=$sms_afteradd_payment, 
-        email_afteradd_payment=$email_afteradd_payment, 
-        sms_after_delete_payment=$sms_after_delete_payment, 
-        email_after_delete_payment=$email_after_delete_payment,
-        sms_after_cancel_payment=$sms_after_cancel_payment, 
-        email_after_cancel_payment=$email_after_cancel_payment, 
-        sms_after_reopen_invoice=$sms_after_reopen_invoice, 
-        email_after_reopen_invoice=$email_after_reopen_invoice,
-        sms_after_classify_as_paid=$sms_after_classify_as_paid, 
-        email_after_classify_as_paid=$email_after_classify_as_paid, 
-        sms_after_classify_as_paid_partially=$sms_after_classify_as_paid_partially, 
-        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially,
-        sms_after_classify_as_paid_partially=$sms_after_classify_as_paid_partially, 
-        email_after_classify_as_paid_partially=$email_after_classify_as_paid_partially,
-        sms_after_validate_commande=$sms_after_validate_commande,
-        email_after_validate_commande=$email_after_validate_commande,
-        sms_after_sending_commande=$sms_after_sending_commande,
-        email_after_sending_commande=$email_after_sending_commande
-        WHERE id=1";
-	$result = $db->query($sql);
-	if ($result) {
-		// refresh the page
-		header('Location: ' . $_SERVER['REQUEST_URI']);
-		echo 'Data updated successfully';
-	} else {
-		echo "Error: " . $db->error();
-	}
-}
+
 llxHeader("", $langs->trans("MailArea"));
 
 print load_fiche_titre($langs->trans("MailArea"), '', 'mail.png@mail');
@@ -250,36 +169,7 @@ if (! empty($conf->mail->enabled) && $user->rights->mail->read)
 END MODULEBUILDER DRAFT MYOBJECT */
 
 
-print '
-<form action="mailindex.php" method="POST">
-  <h2>Email Settings</h2>
-  <input type="checkbox" name="email_after_create_invoice" value="1" ' . ($data["email_after_create_invoice"] == "1" ? "checked" : "") . '> Send email after creating invoice<br>
-  <input type="checkbox" name="email_after_delete_invoice" value="1" ' . ($data["email_after_delete_invoice"] == "1" ? "checked" : "") . '> Send email after deleting invoice<br>
-  <input type="checkbox" name="email_afteradd_payment" value="1" ' . ($data["email_afteradd_payment"] == "1" ? "checked" : "") . '> Send email after adding payment<br>
-  <input type="checkbox" name="email_after_delete_payment" value="1" ' . ($data["email_after_delete_payment"] == "1" ? "checked" : "") . '> Send email after deleting payment<br>
-  <input type="checkbox" name="email_after_cancel_payment" value="1" ' . ($data["email_after_cancel_payment"] == "1" ? "checked" : "") . '> Send email after cancelling payment<br>
-  <input type="checkbox" name="email_after_reopen_invoice" value="1" ' . ($data["email_after_reopen_invoice"] == "1" ? "checked" : "") . '> Send email after reopening invoice<br>
-  <input type="checkbox" name="email_after_classify_as_paid" value="1" ' . ($data["email_after_classify_as_paid"] == "1" ? "checked" : "") . '> Send email after classifying as paid<br>
-  <input type="checkbox" name="email_after_classify_as_paid_partially" value="1" ' . ($data["email_after_classify_as_paid_partially"] == "1" ? "checked" : "") . '> Send email after classifying as paid partially<br>
-  <input type="checkbox" name="email_after_validate_commande" value="1" ' . ($data["email_after_validate_commande"] == "1" ? "checked" : "") . '> Send email after validate commande<br>
-  <input type="checkbox" name="email_after_sending_commande" value="1" ' . ($data["email_after_sending_commande"] == "1" ? "checked" : "") . '> Send email after sending commande<br>
-  <hr>
-  <h2>SMS Settings</h2>
-  <input type="checkbox" name="sms_after_create_invoice" value="1" ' . ($data["sms_after_create_invoice"] == "1" ? "checked" : "") . '> Send SMS after creating invoice<br>
-  <input type="checkbox" name="sms_after_delete_invoice" value="1" ' . ($data["sms_after_delete_invoice"] == "1" ? "checked" : "") . '> Send SMS after deleting invoice<br>
-  <input type="checkbox" name="sms_afteradd_payment" value="1" ' . ($data["sms_afteradd_payment"] == "1" ? "checked" : "") . '> Send SMS after adding payment<br>
-  <input type="checkbox" name="sms_after_delete_payment" value="1" ' . ($data["sms_after_delete_payment"] == "1" ? "checked" : "") . '> Send SMS after deleting payment<br>
-  <input type="checkbox" name="sms_after_cancel_payment" value="1" ' . ($data["sms_after_cancel_payment"] == "1" ? "checked" : "") . '> Send SMS after cancelling payment<br>
-  <input type="checkbox" name="sms_after_reopen_invoice" value="1" ' . ($data["sms_after_reopen_invoice"] == "1" ? "checked" : "") . '> Send SMS after reopening invoice<br>
-  <input type="checkbox" name="sms_after_classify_as_paid" value="1" ' . ($data["sms_after_classify_as_paid"] == "1" ? "checked" : "") . '> Send sms after classifying as paid<br>
-  <input type="checkbox" name="sms_after_classify_as_paid_partially" value="1" ' . ($data["sms_after_classify_as_paid_partially"] == "1" ? "checked" : "") . '> Send sms after classifying as paid partially<br>
-  <input type="checkbox" name="sms_after_validate_commande" value="1" ' . ($data["sms_after_validate_commande"] == "1" ? "checked" : "") . '> Send sms after validate commande<br>
-  <input type="checkbox" name="sms_after_sending_commande" value="1" ' . ($data["sms_after_sending_commande"] == "1" ? "checked" : "") . '> Send sms after send commande<br>
-  <br>
-  
-  <input type="submit" name="submit" value="Save Settings">
-  </form>
-';
+
 
 
 /* BEGIN MODULEBUILDER LASTMODIFIED MYOBJECT
