@@ -26,73 +26,46 @@ function payed_amount($conf, $invoice_id)
 function email_template($invoice, $currency, $total_paid_amount, $remaning_amount, $title, $description, $products_infos, $payment_infos)
 {
 
-	// 1) create the amount table
-	$amount = "";
-	if ($payment_infos) {
-		$amount = "
-		<h1>your paiment infos</h1>
-		<table  border='1' style='border-collapse: collapse;> '
-	<tr>
-	<th>Amount</th>
-	<th>Value</th>
-	</tr>
-	<tr>
-	<td>Original Amount</td>
-	<td>" . $invoice->total_ht . $currency . "</td>
-	</tr>
-	<tr>
-	<td>Total Paid</td>
-	<td>" . $total_paid_amount . $currency . "</td>
-	</tr>
-	<tr>
-	<td>Left to Pay</td>
-	<td>" . $remaning_amount . $currency . "</td>
-	</tr>
-
-	</table>";
-	} else {
-		$amount = "";
-	}
-
-	// 2) create the invoice table
+	// Set variables for payment and product information
 	$invoice_products = $invoice->lines;
-	$products = "";
-	if ($products_infos) {
-		$products = "
-		<h1>the products infos : </h1>
-		<table  border='1' style='border-collapse: collapse;> '
-		<tr>
-		<th>Product</th>
-		<th>Quantity</th>
-		<th>Price</th>
-		<th>Total</th>
-		<th>Discount</th>
-		<th>vat</th>
-		</tr>";
-		foreach ($invoice_products as $product) {
-			$products .= "<tr>
-	<td>" . $product->product_label . "</td>
-	<td>" . $product->qty . "</td>
-	<td>" . $product->subprice . $currency . "</td>
-	<td>" . $product->total_ht . $currency . "</td>
-	<td>" . $product->remise_percent . "</td>
-	<td>" . $product->tva_tx . "</td>
-	</tr></table>";
-		}
-	} else {
-		$products = "";
+
+	// Start building the HTML code
+	$html = '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.4; color: #333333;">';
+	$html .= '<tr><td align="center"><h1 style="margin: 0; font-size: 24px; font-weight: bold;">' . $title . '</h1></td></tr>';
+	$html .= '<tr><td align="center"><p style="margin: 0;">' . $description . '</p></td></tr>';
+
+	// Add payment information table if variable is true
+	if ($payment_infos) {
+		$html .= '<tr><td><table border="1" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 1px solid #dddddd; margin-top: 20px;">';
+		$html .= '<caption style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px;">Your Payment Infos</caption>';
+		$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Paid</td><td align="center" width="50%" style="padding: 10px;">' . $total_paid_amount . '</td></tr>';
+		$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Left Pay</td><td align="center" width="50%" style="padding: 10px;">' . $remaning_amount . '</td></tr>';
+		$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Paid</td><td align="center" width="50%" style="padding: 10px;">' . $total_paid_amount . '</td></tr>';
+		$html .= '</table></td></tr>';
+		$html .= '<caption style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px;">Invoice Infos</caption>';
 	}
-	// 3) create template header
-	$template_header = "<div>";
-	$template_header .= "<h1>" . $title . "</h1>";
-	$template_header .= "<h3>" . $description . "</h3>";
-	$template_header .= "<div>";
-	// 3) create the message then return it
-	$email_message =  $template_header . $products . $amount;
-	return $email_message;
+
+	// Add product information table(s) if variable is true and there are products to display
+	if ($products_infos && count($invoice_products) > 0) {
+		foreach ($invoice_products as $product) {
+			$html .= '<tr><td><table border="1" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 1px solid #dddddd; margin-top: 20px;">';
+			$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Product</td><td align="center" width="50%" style="padding: 10px;">' . $product->product_label . '</td></tr>';
+			$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Quantity</td><td align="center" width="50%" style="padding: 10px;">' . $product->qty . '</td></tr>';
+			$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Price</td><td align="center" width="50%" style="padding: 10px;">' . $product->subprice . '</td></tr>';
+			$html .= '<tr><td align="center" width="50%" style="padding: 10px;">Total</td><td align="center" width="50%" style="padding: 10px;">' . $product->total_ht . '</td></tr>';
+			$html .= '</table></td></tr>';
+		}
+	}
+
+	// Finish building the HTML code
+	$html .= '</table>';
+
+	// Output the HTML code
+	return $html;
 }
 function check($conf, $method)
 {
+
 	$database_name = $conf->db->name;
 	$database_user_name = $conf->db->user;
 	$database_password = $conf->db->pass;
@@ -193,16 +166,20 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 				$description = "dear customer \n the payment with the ref (" . $deleted_id . ") was deleted from the invoice with the ref ( " . $object->ref . ")";
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "payment deleted !", $description, false, true);
 				$message_ .= "<table>
+				<thead>
 				<tr>
 					<th>deleted payment</th>
 				<tr>
+				</thead>
+				<tbody>
 				<tr>
-					<th>" . $deleted_montant . "</th>
+					<td data-label='deleted amount'>" . $deleted_montant . "</td>
 				<tr>
+				</tbody>
 				</table>";
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -211,10 +188,11 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
+				exit;
 				exit;
 			} else {
 				return null;
@@ -240,8 +218,7 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 
 	$response = curl_exec($ch);
 	curl_close($ch);
-	var_dump($response);
-	exit;
+
 	if ($conf->global->MAIN_MODULE_MAIL == 1) {
 		$result = $object->fetch($object->id); // Reload to get new records
 		$result = $object->fetch_thirdparty();
@@ -266,8 +243,8 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 					$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is deleted \n";
 					$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice deleted !', $description, false, false);
 					echo $message_;
-					//$mailfile = new CMailFile($subject, $sendto, $from, $message);
-					//$result = $mailfile->sendfile();
+					$mailfile = new CMailFile($subject, $sendto, $from, $message_);
+					$result = $mailfile->sendfile();
 					if ($result) {
 						setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 					} else {
@@ -275,7 +252,7 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 					}
 				}
 				if ($okay_sms) {
-					//send_sms("+212637342771", $message);
+					send_sms("+212637342771", $message);
 					echo "***********************************";
 					echo "sms sent";
 					echo $message;
@@ -311,8 +288,8 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is canceled \n";
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice canceled !', $description, false, false);
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message);
-				//$result = $mailfile->sendfile();
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_);
+				$result = $mailfile->sendfile();
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -320,7 +297,7 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 
@@ -413,8 +390,8 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is reopened \n";
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice reopened !', $description, false, true);
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -423,7 +400,7 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
@@ -561,7 +538,7 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 		// get the validation date and time
 		$validation_date = $object->date_validation;
 		$validation_date = date('d/m/Y', $validation_date);
-		$message = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is created \n the current total paid is :" . $total_paid . $currency . " \n the total amount is :" . $original_amount . $currency . " \n the left to pay is :" . $left_to_pay . $currency . " \n creation date :" . $validation_date . " \n thank you";
+		$message = "dear customer \n  your invoice with the ref ( " . $object->ref . ") was created \n the current total paid is :" . $total_paid . $currency . " \n the total amount is :" . $original_amount . $currency . " \n the left to pay is :" . $left_to_pay . $currency . " \n creation date :" . $validation_date . " \n thank you";
 		// send email
 		$sendto = $object->thirdparty->email;
 		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
@@ -597,9 +574,17 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is created \n";
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice created !', $description, true, true);
 				echo $message_;
-				exit;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				// Set content-type header for sending HTML email 
+				$mailfile->headers['Content-Type'] = 'text/html; charset=UTF-8';
+				// make email read css
+				$mailfile->headers['X-MSMail-Priority'] = 'High';
+				$mailfile->headers['X-Mailer'] = 'PHP/' . phpversion();
+				$mailfile->headers['X-Priority'] = '3';
+
+
+
+				$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -608,7 +593,7 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
@@ -693,8 +678,8 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 		// Send email
 		if (!empty($sendto) && !empty($from)) {
 			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
-			$okay_mail = check($conf, "email_after_create_payment");
-			$okay_sms = check($conf, "sms_after_create_payment");
+			$okay_mail = check($conf, "email_afteradd_payment");
+			$okay_sms = check($conf, "sms_afteradd_payment");
 			if ($okay_mail) {
 				// get payment ref
 				$payment_ref = $payment->ref;
@@ -703,8 +688,9 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "payment created !", $description, false, true);
 
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
+				exit;
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -713,7 +699,7 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
@@ -808,8 +794,8 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "commande created !", $description, true, false);
 
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -818,7 +804,7 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
@@ -910,8 +896,8 @@ function send_email_after_send_commande($object, $conf, $langs, $mysoc)
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "commande " . $traking_number . " sent !", $description, false, false);
 
 				echo $message_;
-				//$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
-				//$result = $mailfile->sendfile();
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list);
+				$result = $mailfile->sendfile();
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -920,7 +906,7 @@ function send_email_after_send_commande($object, $conf, $langs, $mysoc)
 				}
 			}
 			if ($okay_sms) {
-				//send_sms("+212637342771", $message);
+				send_sms("+212637342771", $message);
 				echo "***********************************";
 				echo "sms sent";
 				echo $message;
