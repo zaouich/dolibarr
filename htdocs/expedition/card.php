@@ -373,9 +373,7 @@ if (empty($reshook)) {
 	 */ elseif ($action == 'create_delivery' && $conf->livraison_bon->enabled && $user->rights->expedition->livraison->creer) {
 		$result = $object->create_delivery($user);
 		if ($result > 0) {
-			echo "test";
 			header("Location: " . DOL_URL_ROOT . '/livraison/card.php?action=create_delivery&id=' . $result);
-			exit;
 		} else {
 			setEventMessages($object->error, $object->errors, 'errors');
 		}
@@ -392,6 +390,8 @@ if (empty($reshook)) {
 			$langs->load("errors");
 			setEventMessages($langs->trans($object->error), $object->errors, 'errors');
 		} else {
+			require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
+			send_email_after_send_commande($object, $conf, $langs, $mysoc);
 			// Define output language
 			if (empty($conf->global->MAIN_DISABLE_PDF_AUTOUPDATE)) {
 				$outputlangs = $langs;
@@ -1491,8 +1491,6 @@ if ($action == 'create') {
 			$formconfirm = $form->formconfirm($_SERVER['PHP_SELF'] . '?id=' . $object->id, $langs->trans('ValidateSending'), $text, 'confirm_valid', '', 0, 1);
 			// get tracking number
 			// get commande ref
-			require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-			send_email_after_send_commande($object, $conf, $langs, $mysoc);
 		}
 		// Confirm cancelation
 		if ($action == 'cancel') {
