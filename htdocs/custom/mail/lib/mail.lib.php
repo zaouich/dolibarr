@@ -179,8 +179,6 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 
 				echo "sms sent : \n\n";
 				echo $message;
-				exit;
-				exit;
 			} else {
 				return null;
 			}
@@ -243,7 +241,6 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 					send_sms("+212637342771", $message);
 					echo "sms sent : \n\n";
 					echo $message;
-					exit;
 				} else {
 					return null;
 				}
@@ -290,7 +287,6 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 				echo "sms sent : \n\n";
 
 				echo $message;
-				exit;
 			} else {
 				return null;
 			}
@@ -387,7 +383,6 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 				send_sms("+212637342771", $message);
 				echo "sms message \n";
 				echo $message;
-				exit;
 			} else {
 				return null;
 			}
@@ -481,7 +476,6 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 
 				echo "sms sent : \n\n";
 				echo $message;
-				exit;
 			} else {
 				return null;
 			}
@@ -567,7 +561,6 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 			//send_sms("+212637342771", $message);
 			echo "sms message :\n\n ";
 			echo $message;
-			exit;
 		} else {
 			return null;
 		}
@@ -660,7 +653,6 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 
 				echo "sms sent : \n\n";
 				echo $message;
-				exit;
 			} else {
 				return null;
 			}
@@ -759,7 +751,6 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 
 				echo "sms sent : \n\n";
 				echo $message;
-				exit;
 			} else {
 				return null;
 			}
@@ -862,7 +853,6 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 
 				echo "sms sent : \n\n";
 				echo $message;
-				exit;
 			} else {
 				return null;
 			}
