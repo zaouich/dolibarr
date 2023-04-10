@@ -1,4 +1,10 @@
 <?php
+
+use phpDocumentor\Reflection\DocBlock\Description;
+use Twilio\Rest\Client;
+use Twilio\TwiML\Voice\Number;
+
+require_once(__DIR__ . '/../../../includes/twilio/sdk/src/Twilio/autoload.php');
 /* Copyright (C) 2002-2007 Rodolphe Quiedeville  <rodolphe@quiedeville.org>
  * Copyright (C) 2004-2013 Laurent Destailleur   <eldy@users.sourceforge.net>
  * Copyright (C) 2004      Sebastien Di Cintio   <sdicintio@ressource-toi.org>
@@ -82,19 +88,37 @@ class Facture extends CommonInvoice
 			$lefttobepaid = $amount - $paid_amount;
 			echo "<pre/>";
 
+			$description = "drean " . $owner->nom . ",\n\n" . "you have an unpaid invoice with ref " . $data->ref . " and due date " . $data->date_lim_reglement . ".\n\n" . "Please pay it as soon as possible.\n\n";
+			$title = "Unpaid invoice";
+			$message = "Dear " . $owner->nom . ",\n\n" . "you have an unpaid invoice with ref " . $data->ref . " and due date " . $data->date_lim_reglement . ".\n\n" . "Please pay it as soon as possible.\n\n" . "total amount: " . $amount . "\n" . "paid amount: " . $paid_amount . "\n" . "left to be paid: " . $lefttobepaid . "\n\n" . "Best regards,\n" . "M-innovation";
+			$html = '<table width="100%" cellspacing="0" cellpadding="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; color: #333333;">';
+			$html .= '<tr><td align="center"><h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #1a66ff;">' . $title . '</h1></td></tr>';
+			$html .= '<tr><td align="center"><p style="margin: 0; color: #707070;">' . $description . '</p></td></tr>';
+			$html .= '<tr><td><table width="100%" cellspacing="0" cellpadding="0" border="1" style="border: 1px solid #1a66ff; margin: 20px 0; border-collapse: collapse;">';
+			$html .= '<tr><td colspan="2" align="center" style="padding: 10px 0; font-size: 20px; font-weight: bold; background-color: #1a66ff; color: #ffffff;">Payment Information</td></tr>';
+			$html .= '<tr><td align="center" style="padding: 10px; width: 50%; border-right: 1px solid #1a66ff; background-color: #ebf0ff;">Total</td><td align="center" style="padding: 10px; width: 50%; background-color: #ebf0ff;">' . number_format($amount, 2) . '</td></tr>';
+			$html .= '<tr><td align="center" style="padding: 10px; width: 50%; border-right: 1px solid #1a66ff; background-color: #ebf0ff;">Paid</td><td align="center" style="padding: 10px; width: 50%; background-color: #ebf0ff;">' . number_format($paid_amount, 2) . '</td></tr>';
+			$html .= '<tr><td align="center" style="padding: 10px; width: 50%; border-right: 1px solid #1a66ff; background-color: #ebf0ff;">Balance Due</td><td align="center" style="padding: 10px; width: 50%; background-color: #ebf0ff;">' . number_format($lefttobepaid, 2) . '</td></tr>';
+			// send email
+			require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
+			global $conf;
+			$email = new CMailFile(
+				"Unpaid invoice",
+				$owner->email,
+				$conf->global->MAIN_MAIL_EMAIL_FROM,
+				$html,
+				"",
+				"",
+				"",
+				"",
+				"",
+				0,
+				1,
+				"text/html"
+			);
+			//send_sms("+212637342771", $message);
 
-			$message = "Dear " . $owner->nom . ",\n\n" . "you have an unpaid invoice with ref " . $data->ref . " and due date " . $data->date_lim_reglement . ".\n\n" . "Please pay it as soon as possible.\n\n" . "Best regards,\n" . "M-innovation";
-			$email = "<div><p></p><p>Dear " . $owner->nom . ",</p><p>you have an unpaid invoice with ref " . $data->ref . " and due date " . $data->date_lim_reglement . ".</p><p>Please pay it as soon as possible.</p><p>Best regards,</p><p>M-innovation</p></div>";
-			// create table with total amount, paid amount and left to be paid
-			$email .= "<table border='1' style='border-collapse: collapse;'> <tr> <th>total amount</th> <th>paid amount</th> <th>left to be paid</th> </tr> <tr> <td>" . $amount . "</td> <td>" . $paid_amount . "</td> <td>" . $lefttobepaid . "</td> </tr> </table>";
-			echo $email;
-			$message .= "paid : " . $paid_amount . " total : " . $amount . " left to be paid : " . $lefttobepaid;
-			echo "****************message ";
-			echo $message;
-			// get invoice id
-			$invoice_id = $data->rowid;
 		}
-		exit;
 	}
 
 
