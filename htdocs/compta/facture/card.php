@@ -192,8 +192,8 @@ if (empty($reshook)) {
 
 	// Change status of invoice
 	elseif ($action == "test") {
-		var_dump($object);
-		exit;
+		require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
+		facture_resend_notification($object, $conf);
 	} elseif ($action == 'reopen' && $usercancreate) {
 		$result = $object->fetch($id);
 
