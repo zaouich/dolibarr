@@ -64,6 +64,10 @@ if (!empty($conf->variants->enabled)) {
 if (!empty($conf->accounting->enabled)) {
 	require_once DOL_DOCUMENT_ROOT . '/accountancy/class/accountingjournal.class.php';
 }
+if (GETPOST("resendnofitication", "alpha")) {
+	var_dump($object);
+	echo "<script>alert('hello');</script>";
+}
 
 // Load translation files required by the page
 $langs->loadLangs(array('bills', 'companies', 'compta', 'products', 'banks', 'main', 'withdrawals'));
@@ -187,7 +191,10 @@ if (empty($reshook)) {
 	}
 
 	// Change status of invoice
-	elseif ($action == 'reopen' && $usercancreate) {
+	elseif ($action == "test") {
+		var_dump($object);
+		exit;
+	} elseif ($action == 'reopen' && $usercancreate) {
 		$result = $object->fetch($id);
 
 		if ($object->statut == Facture::STATUS_CLOSED || ($object->statut == Facture::STATUS_ABANDONED && ($object->close_code != 'replaced' || $object->getIdReplacingInvoice() == 0)) || ($object->statut == Facture::STATUS_VALIDATED && $object->paye == 1)) {    // ($object->statut == 1 && $object->paye == 1) should not happened but can be found when data are corrupted
@@ -4930,7 +4937,7 @@ if ($action == 'create') {
 					} else {
 						if ($usercansend) {
 							print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?facid=' . $object->id . '&action=presend&mode=init#formmailbeforetitle">' . $langs->trans('SendMail') . '</a>';
-							print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?facid=' . $object->id . '&action=presend&mode=init#formmailbeforetitle">' . $langs->trans('Resend Notification') . '</a>';
+							print '<a class="butAction reposition" href="/dolibarr-12.0.1/htdocs/compta/facture/card.php?facid=' . $object->id . '&action=test">RE send</a>';
 						} else
 							print '<a class="butActionRefused classfortooltip" href="#">' . $langs->trans('SendMail') . '</a>';
 					}
