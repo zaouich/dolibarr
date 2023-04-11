@@ -50,6 +50,7 @@ require_once DOL_DOCUMENT_ROOT . '/core/lib/invoice.lib.php';
 require_once DOL_DOCUMENT_ROOT . '/core/lib/functions2.lib.php';
 require_once DOL_DOCUMENT_ROOT . '/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT . '/core/class/extrafields.class.php';
+DOL_DOCUMENT_ROOT . '/compta/paiement/class/paiement.class.php';
 if (!empty($conf->commande->enabled))
 	require_once DOL_DOCUMENT_ROOT . '/commande/class/commande.class.php';
 if (!empty($conf->projet->enabled)) {
@@ -193,7 +194,10 @@ if (empty($reshook)) {
 	// Change status of invoice
 	elseif ($action == "test") {
 		require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
-		facture_resend_notification($object, $conf, $langs, $mysoc);
+		$payment = new Paiement($db);
+		$payment->fetch($paymentId);
+
+		facture_resend_notification($object, $payment, $conf, $langs, $mysoc);
 	} elseif ($action == 'reopen' && $usercancreate) {
 		$result = $object->fetch($id);
 
