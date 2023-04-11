@@ -5,6 +5,30 @@ use Twilio\Rest\Client;
 use Twilio\TwiML\Voice\Number;
 
 require_once(__DIR__ . '/../../../includes/twilio/sdk/src/Twilio/autoload.php');
+function last_action($action, $conf, $fk_id)
+{
+	$database_name = $conf->db->name;
+	$database_user_name = $conf->db->user;
+	$database_password = $conf->db->pass;
+	$database_host = $conf->db->host;
+	$db = new mysqli($database_host, $database_user_name, $database_password, $database_name);
+	if ($db->connect_error) {
+		die("Connection failed: " . $db->connect_error);
+	} else {
+	}
+	$sql = "UPDATE llx_facture SET last_action = ? WHERE rowid = ?";
+	$stmt = $db->prepare($sql);
+	if (!$stmt) {
+		die("Prepare statement failed: " . $db->error);
+	}
+	$stmt->bind_param("si", $action, $fk_id);
+	$result = $stmt->execute();
+	if (!$result) {
+		die("Execute statement failed: " . $stmt->error);
+	}
+	$stmt->close();
+	$db->close();
+}
 function payed_amount($conf, $invoice_id)
 {
 	$database_name = $conf->db->name;
@@ -30,7 +54,7 @@ function email_template($invoice, $currency, $total_paid_amount, $remaning_amoun
 	$invoice_products = $invoice->lines;
 
 	// Start building the HTML code
-	$html = '<table width="100%" cellspacing="0" cellpadding="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; color: #333333;">';
+	$html = '<table max-width="700px" cellspacing="0" cellpadding="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; color: #333333;">';
 	$html .= '<tr><td align="center"><h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #1a66ff;">' . $title . '</h1></td></tr>';
 	$html .= '<tr><td align="center"><p style="margin: 0; color: #707070;">' . $description . '</p></td></tr>';
 
@@ -87,7 +111,7 @@ function check($conf, $method)
 function send_sms($phone_number, $message)
 {
 	$sid = "AC6c449db69d57941571115f72f029ae35";
-	$token = "decfbdf08f46d10a1d94e9a645f088b9";
+	$token = "be0f3bfe6a8c34969e4a5b5f4ef6e119";
 	$twilio = new Client($sid, $token);
 	try {
 		$message = $twilio->messages->create($phone_number, [
@@ -161,12 +185,10 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 			$okay_sms = check($conf, "sms_after_delete_payment");
 			if ($okay_mail) {
 				$description = "dear customer \n the payment with the ref (" . $deleted_id . ") was deleted from the invoice with the ref ( " . $object->ref . ")";
-				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "payment deleted !(" . "started" . ")!", $description, false, true);
-
-				echo "<pre>";
-				echo $message_;
+				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, "payment deleted (" . "started" . ")!", $description, false, true);
 				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list, '', '', 0, 1, "text/html");
 				$result = $mailfile->sendfile();
+				// get facture id
 
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
@@ -176,12 +198,13 @@ function send_email_on_payment_delete($object, $paiement, $conf, $langs, $mysoc)
 			}
 			if ($okay_sms) {
 				send_sms("+212637342771", $message);
-
 				echo "sms sent : \n\n";
 				echo $message;
 			} else {
 				return null;
 			}
+			$facture_id = $object->id;
+			last_action("send_email_on_payment_delete", $conf, $facture_id);
 		}
 	} else {
 		return null;
@@ -244,6 +267,8 @@ function send_mail_after_delete_invoice($object, $conf, $langs, $mysoc)
 				} else {
 					return null;
 				}
+				$facture_id = $object->id;
+				last_action("send_mail_after_delete_invoice", $conf, $facture_id);
 			}
 		}
 	} else {
@@ -290,6 +315,8 @@ function send_email_after_classify_abandoned($object, $conf, $langs, $mysoc)
 			} else {
 				return null;
 			}
+			$facture_id = $object->id;
+			last_action("send_email_after_classify_abandoned", $conf, $facture_id);
 		}
 	}
 }
@@ -386,6 +413,8 @@ function send_mail_after_reopen($object, $paiement, $conf, $langs, $mysoc)
 			} else {
 				return null;
 			}
+			$facture_id = $object->id;
+			last_action("send_mail_after_reopen", $conf, $facture_id);
 		}
 	} else {
 		return null;
@@ -461,10 +490,10 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 			$okay_sms = check($conf, "sms_after_classify_as_paid");
 			if ($okay_mail) {
 
-				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") is paid \n";
+				$description = "dear customer \n  your invoice with the ref ( " . $object->ref . ") was paid \n";
 				$message_ = email_template($object, $currency, $total_paid, $left_to_pay, 'invoice paid !', $description, false, true);
-				echo "<pre>";
-				echo $message_;
+				$mailfile = new CMailFile($subject, $sendto, $from, $message_, $filename_list, $mimetype_list, $mimefilename_list, '', '', 0, 1, "text/html");
+				$result = $mailfile->sendfile();
 				if ($result) {
 					setEventMessages($langs->trans('MailSuccessfulySent', $from, $sendto), null, 'mesgs');
 				} else {
@@ -473,12 +502,12 @@ function send_email_after_classify_paid($object, $paiement, $conf, $langs, $myso
 			}
 			if ($okay_sms) {
 				//send_sms("+212637342771", $message);
-
 				echo "sms sent : \n\n";
-				echo $message;
 			} else {
 				return null;
 			}
+			$facture_id = $object->id;
+			last_action("send_mail_after_classify_paid", $conf, $facture_id);
 		}
 	} else {
 		return null;
@@ -564,6 +593,8 @@ function send_email_after_classify_paid_partialy($object, $paiement, $conf, $lan
 		} else {
 			return null;
 		}
+		$facture_id = $object->id;
+		last_action("send_mail_after_classify_paid_partialy", $conf, $facture_id);
 	}
 }
 function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
@@ -656,6 +687,8 @@ function send_email_after_validate_invoice($object, $conf, $langs, $mysoc)
 			} else {
 				return null;
 			}
+			$facture_id = $object->id;
+			last_action("send_mail_after_validate_invoice", $conf, $facture_id);
 		}
 	} else {
 		return null;
@@ -754,6 +787,9 @@ function send_email_after_enter_payment($object, $conf, $langs, $mysoc)
 			} else {
 				return null;
 			}
+			$facture_id = $object->id;
+
+			last_action("send_mail_after_enter_payment", $conf, $facture_id);
 		}
 	} else {
 		return null;
@@ -954,4 +990,27 @@ function send_email_after_send_commande($object, $conf, $langs, $mysoc)
 	} else {
 		return null;
 	}
+}
+//*************************** */
+function facture_resend_notification($object, $conf)
+{
+	// create a connection to the database
+	$database_host = $conf->db->host;
+	$database_name = $conf->db->name;
+	$database_user = $conf->db->user;
+	$database_password = $conf->db->pass;
+	$database_port = $conf->db->port;
+	// get the invoice data 
+	$invoice_id = $object->id;
+	$db = new mysqli($database_host, $database_user, $database_password, $database_name, $database_port);
+	// get the invoice data
+	$sql = "SELECT * FROM llx_facture WHERE rowid = $invoice_id";
+	$result = $db->query($sql);
+	$invoice_data = $result->fetch_assoc();
+	// get the customer data
+	$customer_id = $invoice_data['fk_soc'];
+	$sql = "SELECT * FROM llx_societe WHERE rowid = $customer_id";
+	$result = $db->query($sql);
+	$customer_data = $result->fetch_assoc();
+	var_dump($customer_data);
 }
