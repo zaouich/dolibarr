@@ -992,7 +992,7 @@ function send_email_after_send_commande($object, $conf, $langs, $mysoc)
 	}
 }
 //*************************** */
-function facture_resend_notification($object, $conf)
+function facture_resend_notification($object, $payment, $conf, $lang, $mysoc)
 {
 	// create a connection to the database
 	$database_host = $conf->db->host;
@@ -1012,5 +1012,28 @@ function facture_resend_notification($object, $conf)
 	$sql = "SELECT * FROM llx_societe WHERE rowid = $customer_id";
 	$result = $db->query($sql);
 	$customer_data = $result->fetch_assoc();
-	var_dump($customer_data);
+	// start the work 
+	$last_action = $invoice_data['last_action'];
+	if (!$last_action) {
+		// error notification
+		setEventMessages('Error: there is no actions in this invoice', null, 'errors', 0, 'direct');
+	} else {
+		if ($last_action == "send_email_on_payment_delete") {
+			send_email_on_payment_delete($object, $payment, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_mail_after_delete_invoice") {
+			send_mail_after_delete_invoice($object, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_email_after_classify_abandoned") {
+			send_email_after_classify_abandoned($object, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_mail_after_reopen") {
+			send_mail_after_reopen($object, $payment, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_email_after_classify_paid") {
+			send_email_after_classify_paid($object, $payment, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_email_after_classify_paid_partialy") {
+			send_email_after_classify_paid_partialy($object, $payment, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_email_after_validate_invoice") {
+			send_email_after_validate_invoice($object, $conf, $lang, $mysoc);
+		} elseif ($last_action == "send_email_after_enter_payment") {
+			send_email_after_enter_payment($object, $conf, $lang, $mysoc);
+		}
+	}
 }
