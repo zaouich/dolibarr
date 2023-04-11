@@ -54,7 +54,8 @@ function email_template($invoice, $currency, $total_paid_amount, $remaning_amoun
 	$invoice_products = $invoice->lines;
 
 	// Start building the HTML code
-	$html = '<table max-width="700px" cellspacing="0" cellpadding="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; color: #333333;">';
+
+	$html = '<table max-width="700px"  cellspacing="0" cellpadding="0" border="0" style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; color: #333333; margin: auto;">';
 	$html .= '<tr><td align="center"><h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #1a66ff;">' . $title . '</h1></td></tr>';
 	$html .= '<tr><td align="center"><p style="margin: 0; color: #707070;">' . $description . '</p></td></tr>';
 
