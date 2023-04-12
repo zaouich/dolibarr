@@ -177,6 +177,11 @@ if (empty($reshook)) {
 				setEventMessages($object->error, $object->errors, 'errors');
 			}
 		}
+	} elseif ($action == "resend") {
+
+		// require mail.lib.php
+		require_once DOL_DOCUMENT_ROOT . '\custom\mail\lib\mail.lib.php';
+		commande_resend_notification($object, $conf, $langs, $mysoc);
 	}
 
 	// Remove order
@@ -2421,8 +2426,10 @@ if ($action == 'create' && $usercancreate) {
 					if ($object->statut > Commande::STATUS_DRAFT || !empty($conf->global->COMMANDE_SENDBYEMAIL_FOR_ALL_STATUS)) {
 						if ($usercansend) {
 							print '<a class="butAction" href="' . $_SERVER["PHP_SELF"] . '?id=' . $object->id . '&action=presend&mode=init#formmailbeforetitle">' . $langs->trans('SendMail') . '</a>';
-						} else
-							print '<a class="butActionRefused classfortooltip" href="#">' . $langs->trans('SendMail') . '</a>';
+							print '<a class="butAction" href="' . $_SERVER["PHP_SELF"] . '?id=' . $object->id . '&action=resend">resend notifications</a>"';
+						}
+						echo "********";
+						print '<a class="butActionRefused classfortooltip" href="#">' . $langs->trans('SendMail') . '</a>';
 					}
 				}
 
