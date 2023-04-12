@@ -29,6 +29,31 @@ function last_action($action, $conf, $fk_id)
 	$stmt->close();
 	$db->close();
 }
+function commande_last_action($action, $conf, $commande_id)
+{
+
+	$database_name = $conf->db->name;
+	$database_user_name = $conf->db->user;
+	$database_password = $conf->db->pass;
+	$database_host = $conf->db->host;
+	$db = new mysqli($database_host, $database_user_name, $database_password, $database_name);
+	if ($db->connect_error) {
+		die("Connection failed: " . $db->connect_error);
+	} else {
+	}
+	$sql = "UPDATE llx_commande SET last_action = ? WHERE rowid = ?";
+	$stmt = $db->prepare($sql);
+	if (!$stmt) {
+		die("Prepare statement failed: " . $db->error);
+	}
+	$stmt->bind_param("si", $action, $commande_id);
+	$result = $stmt->execute();
+	if (!$result) {
+		die("Execute statement failed: " . $stmt->error);
+	}
+	$stmt->close();
+	$db->close();
+}
 function payed_amount($conf, $invoice_id)
 {
 	$database_name = $conf->db->name;
@@ -843,7 +868,7 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 		// send email
 		$sendto = $object->thirdparty->email;
 		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Commande') . ' ' . $object->ref;
 
 		$filename_list = array();
 		$mimefilename_list = array();
@@ -893,6 +918,8 @@ function send_email_after_create_commande($object, $conf, $langs, $mysoc)
 			} else {
 				return null;
 			}
+
+			commande_last_action("send_email_after_create_commande", $conf, $object->id);
 		}
 	} else {
 		return null;
@@ -938,7 +965,7 @@ function send_email_after_send_commande($object, $conf, $langs, $mysoc)
 		// send email
 		$sendto = $object->thirdparty->email;
 		$from = $conf->global->MAIN_MAIL_EMAIL_FROM;
-		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Invoice') . ' ' . $object->ref;
+		$subject = '[' . $mysoc->name . '] ' . $langs->trans('Shipment') . ' ' . $object->ref;
 
 		$filename_list = array();
 		$mimefilename_list = array();
@@ -987,6 +1014,7 @@ function send_email_after_send_commande($object, $conf, $langs, $mysoc)
 			} else {
 				return null;
 			}
+			commande_last_action("send_email_after_send_commande", $conf, $object->id);
 		}
 	} else {
 		return null;
@@ -1035,6 +1063,40 @@ function facture_resend_notification($object, $payment, $conf, $lang, $mysoc)
 			send_email_after_validate_invoice($object, $conf, $lang, $mysoc);
 		} elseif ($last_action == "send_email_after_enter_payment") {
 			send_email_after_enter_payment($object, $conf, $lang, $mysoc);
+		}
+	}
+}
+function commande_resend_notification($object, $conf, $langs, $mysoc)
+{
+
+	// create a connection to the database
+	$database_host = $conf->db->host;
+	$database_name = $conf->db->name;
+	$database_user = $conf->db->user;
+	$database_password = $conf->db->pass;
+	$database_port = $conf->db->port;
+	// get the commande data 
+	$commande_id = $object->id;
+	$db = new mysqli($database_host, $database_user, $database_password, $database_name, $database_port);
+	// get the commande data
+	$sql = "SELECT * FROM llx_commande WHERE rowid = $commande_id";
+	$result = $db->query($sql);
+	$commande_data = $result->fetch_assoc();
+	// get the customer data
+	$customer_id = $commande_data['fk_soc'];
+	$sql = "SELECT * FROM llx_societe WHERE rowid = $customer_id";
+	$result = $db->query($sql);
+	$customer_data = $result->fetch_assoc();
+	// start the work 
+	$last_action = $commande_data['last_action'];
+	if (!$last_action) {
+		// error notification
+		setEventMessages('Error: there is no actions in this commande', null, 'errors', 0, 'direct');
+	} else {
+		if ($last_action == "send_email_after_send_commande") {
+			send_email_after_send_commande($object, $conf, $langs, $mysoc);
+		} elseif ($last_action == "send_email_after_create_commande") {
+			send_email_after_send_commande($object, $conf, $langs, $mysoc);
 		}
 	}
 }
