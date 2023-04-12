@@ -1,5 +1,6 @@
 use dolibarr_;
 alter table llx_facture add last_action varchar(30) ;
+alter table llx_commande add last_action varchar(30) ;
 drop table llx_auto_send
 CREATE TABLE llx_auto_send (
   id INT(11) NOT NULL AUTO_INCREMENT,
