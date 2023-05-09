@@ -290,9 +290,80 @@ if (count($arrayjs) && $mode == 'memberbycountry')
     print '<div class="center" id="'.$mode.'"></div>'."\n";
     print '<br>';
 }
+function printMemberByCountryChart($maxBars, $showUnknowns, $showOthers) {
+    global $langs, $data;
 
+    // Sort data by number of members
+    usort($data, function ($a, $b) {
+        return $b['nb'] - $a['nb'];
+    });
+
+    // Filter out unknown countries
+    $data = array_filter($data, function ($val) use ($showUnknowns, $showOthers) {
+        if (!$showUnknowns && $val['label'] === 'Unknown') {
+            return false;
+        }
+        if (!$showOthers && $val['label'] !== 'Unknown') {
+            return true;
+        }
+        return true;
+    });
+
+    // Get top countries
+    if ($showOthers) {
+        $topCountries = array_slice($data, 0, $maxBars);
+    } else {
+        $topCountries = array_slice($data, 0, min($maxBars, count($data)));
+    }
+    $topSum = array_reduce($topCountries, function($acc, $val) {
+        return $acc + $val['nb'];
+    }, 0);
+
+    // Add "Other" bar if requested
+    if ($showOthers && count($data) > $maxBars) {
+        $otherSum = 0;
+        for ($i = $maxBars; $i < count($data); $i++) {
+            $otherSum += $data[$i]['nb'];
+        }
+        $topCountries[] = [
+            'label' => 'Other',
+            'nb' => $otherSum,
+            'lastdate' => null,
+            'lastsubscriptiondate' => null,
+        ];
+    }
+
+    // Print chart
+    print '<div class="tabBar">';
+    print 'This screen shows you statistics on members by countries.';
+    print '<br><br><script type="text/javascript">';
+    print 'google.load(\'visualization\', \'1\', {\'packages\': [\'corechart\']});';
+    print 'google.setOnLoadCallback(function() {setTimeout(drawChart, 1000)});';
+    print 'function drawChart() {';
+    print 'var data = new google.visualization.DataTable();';
+    print 'data.addColumn(\'string\', \'Country\');';
+    print 'data.addColumn(\'number\', \'Number of members\');';
+    print 'data.addRows('.count($topCountries).');';
+    foreach ($topCountries as $i => $val) {
+        print 'data.setValue('.$i.', 0, \''.$val['label'].'\');';
+        print 'data.setValue('.$i.', 1, '.$val['nb'].');';
+    }
+    print 'var options = {\'width\':700, \'height\':350,';
+    print '\'colors\': [\'#3c93b7\', \'#8956a1\'],';
+    print '\'title\': \''.$langs->trans("MembersByCountry").'\'';
+    print '};';
+    print 'var chart = new google.visualization.ColumnChart(document.getElementById(\'memberbycountry\'));';
+    print 'chart.draw(data, options);';
+    print '}';
+    print '</script>';
+    print '<div class="center" id="memberbycountry"></div>';
+    print '</div>';
+}
 if ($mode)
 {
+    // stop
+    
+    printMemberByCountryChart(3 /* max bars */, true /* Unknown bar */ , true /* Other bar*/);
     // Print array / Affiche le tableau
     print '<table class="liste centpercent">';
     print '<tr class="liste_titre">';
@@ -316,6 +387,7 @@ if ($mode)
     }
 
     print '</table>';
+    
 }
 
 
