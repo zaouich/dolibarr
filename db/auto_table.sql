@@ -26,4 +26,5 @@ CREATE TABLE llx_auto_send (
   email_after_sending_commande TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
+create TABLE llx_chart ( max int DEFAULT 5, other boolean DEFAULT true, unknowns boolean DEFAULT true );
 
